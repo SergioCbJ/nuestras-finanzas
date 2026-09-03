@@ -140,6 +140,14 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .evol-tooltip.show{display:block;}
 .evol-tooltip strong{font-size:13px;}
 
+/* ---------- Gasto por categoría — evolución (líneas) ---------- */
+.cat-chip-picker{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.cat-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:var(--plane);color:var(--ink-soft);font-size:12.5px;font-weight:600;cursor:pointer;}
+.cat-chip.active{color:#fff;border-color:transparent;}
+.catchart-hit{cursor:pointer;}
+.catchart-tip-row{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.catchart-tip-row i{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block;}
+
 /* ---------- Metas de ahorro ---------- */
 .meta-row{padding:10px 0;border-bottom:1px solid var(--grid);}
 .meta-row:last-child{border-bottom:none;}
@@ -194,6 +202,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 /* ---------- Ticket (foto/PDF) ---------- */
 .ticket-chip{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--plane);}
 .ticket-chip[hidden]{display:none;}
+.ticket-chip-preview{display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;}
 .ticket-chip-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;flex:none;}
 .ticket-chip-pdf{display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--surface);}
 .ticket-chip-name{flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -431,6 +440,12 @@ nav.bottom button.active{color:var(--c-ahorro);}
         <div class="card">
           <div class="section-title">Gasto por categoría</div>
           <div id="cat-breakdown"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Gasto por categoría — evolución</div>
+          <div class="cat-chip-picker" id="cat-chart-picker"></div>
+          <div id="cat-chart"></div>
         </div>
 
         <div class="card">
@@ -1085,7 +1100,8 @@ function setTicketChip(prefix, ticket){
   const chip = $('#ticket-chip-'+prefix);
   const btn = $('#btn-ticket-pick-'+prefix);
   if(ticket){
-    chip.innerHTML = ticketChipHTML(ticket) + `<button type="button" class="ticket-chip-remove" data-ticket-remove="${prefix}" title="Quitar ticket">✕</button>`;
+    chip.innerHTML = `<div class="ticket-chip-preview" data-ticket-chip-view="${prefix}" title="Ver / descargar">${ticketChipHTML(ticket)}</div>` +
+      `<button type="button" class="ticket-chip-remove" data-ticket-remove="${prefix}" title="Quitar ticket">✕</button>`;
     chip.hidden = false;
     if(btn) btn.hidden = true;
   }else{
@@ -1095,10 +1111,26 @@ function setTicketChip(prefix, ticket){
   }
 }
 
+function dataURLToBlob(dataURL){
+  const [header, base64] = dataURL.split(',');
+  const mimeMatch = /:(.*?);/.exec(header);
+  const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 function downloadDataURL(dataURL, filename){
+  // Un enlace <a download> con un href "data:" directo no dispara la descarga
+  // en varios móviles (Safari/iOS y algunos Chrome de Android la ignoran). Un
+  // "blob:" (como ya usa la exportación a CSV) sí funciona de forma fiable.
+  const blob = dataURLToBlob(dataURL);
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = dataURL; a.download = filename;
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function openTicketViewer(ticket){
@@ -1212,6 +1244,8 @@ function renderResumen(){
   if(restCount > 0) html += catHTML(`Otros (${restCount})`, restSum, 'var(--neutral)');
   $('#cat-breakdown').innerHTML = html || '<div class="empty-hint">Sin gastos este mes.</div>';
 
+  renderCatChart(timeline);
+
   const gastoMap = Object.fromEntries(cats);
   const presEntries = Object.entries(state.presupuestos).filter(([,v]) => v && v.limite > 0);
   if(!presEntries.length){
@@ -1288,22 +1322,138 @@ function evolChartHTML(timeline){
            `<rect x="${(i*groupW).toFixed(1)}" y="0" width="${groupW.toFixed(1)}" height="${H}" fill="transparent" class="evol-hit" `+
            `data-label="${escapeHTML(mesLabel(r.mes))}" data-ing="${escapeHTML(fmtEUR.format(ing))}" data-gas="${escapeHTML(fmtEUR.format(gas))}"/>`;
   }).join('');
-  // El año solo se repite cuando cambia (o en la primera columna) -- así, si
-  // el histórico salta de un año a otro, un mismo nombre de mes (p.ej. "abr")
-  // no puede confundirse con el de otro año.
+  return `<svg class="evol-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svgBars}</svg>
+    <div class="evol-labels">${monthLabelsHTML(rows)}</div>
+    <div class="evol-legend"><span><i style="background:var(--c-ingreso)"></i>Ingresos</span><span><i style="background:var(--c-gasto)"></i>Gastos</span></div>
+    <div class="evol-tooltip" id="evol-tooltip"></div>`;
+}
+
+// El año solo se repite cuando cambia (o en la primera columna) -- así, si
+// el histórico salta de un año a otro, un mismo nombre de mes (p.ej. "abr")
+// no puede confundirse con el de otro año. Compartido por todos los
+// gráficos mensuales (evolución, gasto por categoría...).
+function monthLabelsHTML(rows){
   let lastYear = null;
-  const labels = rows.map((r,i) => {
+  return rows.map((r,i) => {
     const y = r.mes.slice(0,4);
     const showYear = (i===0 || y !== lastYear);
     lastYear = y;
     const yearLine = showYear ? `<span class="evol-mlabel-yr">${escapeHTML(y)}</span>` : '';
     return `<div class="evol-mlabel">${escapeHTML(mesLabelShort(r.mes))}${yearLine}</div>`;
   }).join('');
-  return `<svg class="evol-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svgBars}</svg>
-    <div class="evol-labels">${labels}</div>
-    <div class="evol-legend"><span><i style="background:var(--c-ingreso)"></i>Ingresos</span><span><i style="background:var(--c-gasto)"></i>Gastos</span></div>
-    <div class="evol-tooltip" id="evol-tooltip"></div>`;
 }
+
+/* ================= Gasto por categoría — evolución (líneas) ================= */
+const CAT_CHART_MAX = 5;
+// Solo hay CAT_PALETTE.length colores fijos, pero hay más categorías que eso, así
+// que el color por categoría (fijo, no por rango) inevitablemente se repite cada
+// CAT_PALETTE.length categorías. El patrón de trazo compensa: cambia justo cuando el
+// color vuelve a repetirse, así que dos categorías nunca comparten color Y trazo a
+// la vez -- se distinguen aunque acaben con el mismo color en la misma selección.
+const CAT_DASH_PATTERNS = ['', '6,3', '2,3', '9,3,2,3'];
+
+function catColor(categoria){
+  const idx = CATEGORIAS_GASTO.indexOf(categoria);
+  return `var(--${CAT_PALETTE[idx % CAT_PALETTE.length] || 'neutral'})`;
+}
+
+function catDash(categoria){
+  const idx = CATEGORIAS_GASTO.indexOf(categoria);
+  const vuelta = Math.floor(idx / CAT_PALETTE.length) % CAT_DASH_PATTERNS.length;
+  return CAT_DASH_PATTERNS[vuelta];
+}
+
+// Top categorías por gasto total en los últimos 12 meses -- un punto de
+// partida razonable la primera vez que se abre (nada seleccionado sería un
+// gráfico vacío y poco útil).
+function computeDefaultCatChartSel(timeline){
+  const recent = timeline.slice(-12);
+  const totals = {};
+  recent.forEach(r => { catBreakdown(r.mes).forEach(([cat,val]) => { totals[cat] = (totals[cat]||0) + val; }); });
+  return Object.entries(totals).sort((a,b) => b[1]-a[1]).filter(([,v]) => v > 0).slice(0,3).map(([cat]) => cat);
+}
+
+function initCatChartSel(timeline){
+  if(state.catChartSel) return;
+  let stored = null;
+  try{ stored = JSON.parse(safeLocalGet('finanzas_cat_chart_sel') || 'null'); }catch(e){ stored = null; }
+  if(Array.isArray(stored) && stored.length){
+    state.catChartSel = stored.filter(c => CATEGORIAS_GASTO.includes(c)).slice(0, CAT_CHART_MAX);
+  }
+  if(!state.catChartSel || !state.catChartSel.length){
+    state.catChartSel = computeDefaultCatChartSel(timeline);
+  }
+}
+
+function catChartPickerHTML(selected){
+  return CATEGORIAS_GASTO.map(cat => {
+    const active = selected.includes(cat);
+    const style = active ? `background:${catColor(cat)};` : '';
+    return `<button type="button" class="cat-chip${active?' active':''}" style="${style}" data-cat-chip="${escapeHTML(cat)}">${catIcon(cat)} ${escapeHTML(cat)}</button>`;
+  }).join('');
+}
+
+function catChartHTML(selCats, timeline){
+  const rows = timeline.slice(-12);
+  if(rows.length < 2) return '<div class="empty-hint">Todavía no hay suficientes meses para ver una evolución.</div>';
+  if(!selCats.length) return '<div class="empty-hint">Selecciona una o más categorías para ver su evolución.</div>';
+  const perMonth = rows.map(r => Object.fromEntries(catBreakdown(r.mes)));
+  const series = selCats.map(cat => ({ cat, color: catColor(cat), dash: catDash(cat), values: perMonth.map(m => m[cat] || 0) }));
+  const W = 300, H = 108;
+  const maxVal = Math.max(1, ...series.flatMap(s => s.values));
+  const stepX = rows.length > 1 ? W / (rows.length - 1) : W;
+  const y = (v) => H - (v / maxVal) * H;
+  const svgLines = series.map(s => {
+    const pts = s.values.map((v,i) => `${(i*stepX).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const dots = s.values.map((v,i) => `<circle cx="${(i*stepX).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" fill="${s.color}"/>`).join('');
+    const dashAttr = s.dash ? ` stroke-dasharray="${s.dash}"` : '';
+    return `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${dashAttr}/>${dots}`;
+  }).join('');
+  const hitW = rows.length > 1 ? stepX : W;
+  const svgHits = rows.map((r,i) => {
+    // Recorta también el borde derecho -- si no, el hueco de la última columna
+    // se sale del viewBox y su punto de toque queda justo en el filo (poco fiable).
+    const x = Math.max(0, Math.min(i*stepX - hitW/2, W - hitW));
+    return `<rect x="${x.toFixed(1)}" y="0" width="${hitW.toFixed(1)}" height="${H}" fill="transparent" class="catchart-hit" data-catchart-mes="${r.mes}"/>`;
+  }).join('');
+  return `<svg class="evol-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svgLines}${svgHits}</svg>
+    <div class="evol-labels">${monthLabelsHTML(rows)}</div>
+    <div class="evol-tooltip" id="catchart-tooltip"></div>`;
+}
+
+function renderCatChart(timeline){
+  timeline = timeline || fullTimeline();
+  initCatChartSel(timeline);
+  $('#cat-chart-picker').innerHTML = catChartPickerHTML(state.catChartSel);
+  $('#cat-chart').innerHTML = catChartHTML(state.catChartSel, timeline);
+}
+
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-cat-chip]');
+  if(!chip) return;
+  const cat = chip.getAttribute('data-cat-chip');
+  const i = state.catChartSel.indexOf(cat);
+  if(i >= 0){
+    state.catChartSel.splice(i, 1);
+  }else{
+    if(state.catChartSel.length >= CAT_CHART_MAX){ showToast(`Puedes comparar hasta ${CAT_CHART_MAX} categorías a la vez.`); return; }
+    state.catChartSel.push(cat);
+  }
+  safeLocalSet('finanzas_cat_chart_sel', JSON.stringify(state.catChartSel));
+  renderCatChart();
+});
+
+document.addEventListener('click', (e) => {
+  const hit = e.target.closest('.catchart-hit');
+  if(!hit) return;
+  const tip = $('#catchart-tooltip');
+  if(!tip) return;
+  const mes = hit.getAttribute('data-catchart-mes');
+  const map = Object.fromEntries(catBreakdown(mes));
+  const rows = state.catChartSel.map(cat => `<div class="catchart-tip-row"><i style="background:${catColor(cat)}"></i>${catIcon(cat)} ${escapeHTML(cat)}: ${escapeHTML(fmtEUR.format(map[cat]||0))}</div>`).join('');
+  tip.innerHTML = `<strong>${escapeHTML(mesLabel(mes))}</strong>${rows}`;
+  tip.classList.add('show');
+});
 
 /* ================= Metas de ahorro ================= */
 function progresoMeta(meta, timeline){
@@ -1597,6 +1747,14 @@ $('#modal-ticket-view').addEventListener('click', (e) => { if(e.target.id === 'm
 
 let ticketAdd = null;
 let ticketEdit = null;
+
+document.addEventListener('click', (e) => {
+  const prev = e.target.closest('[data-ticket-chip-view]');
+  if(!prev) return;
+  const prefix = prev.getAttribute('data-ticket-chip-view');
+  const ticket = prefix === 'add' ? ticketAdd : ticketEdit;
+  if(ticket) openTicketViewer(ticket);
+});
 
 $('#btn-ticket-pick-add').addEventListener('click', () => $('#in-ticket').click());
 $('#btn-ticket-pick-edit').addEventListener('click', () => $('#edit-ticket').click());
