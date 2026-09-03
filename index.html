@@ -64,6 +64,8 @@ h1,h2,h3,p{margin:0;}
 /* ---------- Header ---------- */
 header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
 .h-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.header-actions{display:flex;align-items:center;gap:8px;}
+.theme-toggle{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--plane);color:var(--ink);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .user-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--plane);border-radius:999px;padding:6px 12px 6px 6px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;}
 .user-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;}
 .user-dot.Sergio{background:var(--blue);}
@@ -123,6 +125,32 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .kpi-card.violet{background:var(--violet);}
 .kpi-card.aqua{background:var(--aqua);color:var(--ink);}
 .kpi-card.alerta{background:var(--c-alerta);}
+.kpi-spark{display:block;width:100%;height:20px;margin-top:6px;color:inherit;}
+
+/* ---------- Evolución (gráfica de barras) ---------- */
+.evol-svg{display:block;width:100%;height:110px;}
+.evol-hit{cursor:pointer;}
+.evol-labels{display:flex;margin-top:2px;gap:2px;}
+.evol-mlabel{flex:1;min-width:0;text-align:center;font-size:10px;color:var(--muted);text-transform:capitalize;overflow:hidden;white-space:nowrap;}
+.evol-mlabel-yr{display:block;font-size:8px;opacity:.75;text-transform:none;}
+.evol-legend{display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--ink-soft);}
+.evol-legend span{display:flex;align-items:center;gap:6px;}
+.evol-legend i{width:9px;height:9px;border-radius:2px;display:inline-block;}
+.evol-tooltip{display:none;margin-top:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--plane);border:1px solid var(--border);font-size:12.5px;line-height:1.6;}
+.evol-tooltip.show{display:block;}
+.evol-tooltip strong{font-size:13px;}
+
+/* ---------- Metas de ahorro ---------- */
+.meta-row{padding:10px 0;border-bottom:1px solid var(--grid);}
+.meta-row:last-child{border-bottom:none;}
+.meta-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px;}
+.meta-nombre{font-weight:700;font-size:14px;}
+.meta-nombre.conseguida{text-decoration:line-through;color:var(--muted);}
+.meta-pct{font-size:12px;color:var(--muted);font-weight:700;}
+.meta-amounts{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
+.meta-actions{display:flex;gap:14px;margin-top:6px;}
+.meta-actions button{background:none;border:none;padding:0;font-size:12.5px;color:var(--c-ahorro);font-weight:700;cursor:pointer;}
+.meta-actions button.danger{color:var(--c-alerta);}
 
 /* ---------- Month panel ---------- */
 .month-select-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
@@ -159,8 +187,18 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .mov-amount.gasto{color:var(--c-gasto);}
 .mov-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px 2px;flex:none;}
 .mov-del.confirm{color:var(--c-alerta);font-weight:800;font-size:11px;}
+.mov-ticket{background:none;border:none;color:var(--c-ahorro);cursor:pointer;font-size:15px;padding:4px 2px;flex:none;}
 
 .empty-hint{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 8px;}
+
+/* ---------- Ticket (foto/PDF) ---------- */
+.ticket-chip{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--plane);}
+.ticket-chip[hidden]{display:none;}
+.ticket-chip-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;flex:none;}
+.ticket-chip-pdf{display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--surface);}
+.ticket-chip-name{flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ticket-chip-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex:none;padding:4px;}
+.ticket-view-img{width:100%;border-radius:12px;display:block;}
 
 /* ---------- Recurring rows ---------- */
 .rec-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--grid);}
@@ -239,10 +277,13 @@ nav.bottom button.active{color:var(--c-ahorro);}
   <div id="screen-main" style="display:none;">
     <header>
       <div class="h-title">💶 Nuestras Finanzas</div>
-      <button class="user-pill" id="btn-switch-user">
-        <span class="user-dot" id="user-dot"></span>
-        <span id="user-name"></span>
-      </button>
+      <div class="header-actions">
+        <button class="theme-toggle" id="btn-theme-toggle" title="Cambiar tema" aria-label="Cambiar tema">🌙</button>
+        <button class="user-pill" id="btn-switch-user">
+          <span class="user-dot" id="user-dot"></span>
+          <span id="user-name"></span>
+        </button>
+      </div>
     </header>
 
     <main>
@@ -303,6 +344,12 @@ nav.bottom button.active{color:var(--c-ahorro);}
               <label for="in-obs">Observaciones (opcional)</label>
               <input type="text" id="in-obs" maxlength="120">
             </div>
+            <div class="field" style="margin-bottom:14px;">
+              <label>Ticket (foto o PDF, opcional)</label>
+              <input type="file" id="in-ticket" accept="image/*,application/pdf" hidden>
+              <button type="button" class="btn btn-sm btn-ghost" id="btn-ticket-pick-add">📎 Adjuntar ticket</button>
+              <div class="ticket-chip" id="ticket-chip-add" hidden></div>
+            </div>
             <button type="submit" class="btn btn-primary">Guardar movimiento</button>
           </form>
         </div>
@@ -338,23 +385,37 @@ nav.bottom button.active{color:var(--c-ahorro);}
 
       <!-- ===================== RESUMEN ===================== -->
       <section class="view" id="view-resumen">
+        <div class="row-between" style="margin-bottom:12px;">
+          <div class="section-title" style="margin-bottom:0;">Resumen</div>
+          <button type="button" class="link-btn" id="btn-export">⬇ Exportar</button>
+        </div>
+
         <div class="kpi-grid">
           <div class="kpi-card blue">
             <div class="kpi-label">Ahorro acumulado</div>
             <div class="kpi-value" id="kpi-ahorro-total">—</div>
+            <div id="spark-ahorro-total"></div>
           </div>
           <div class="kpi-card violet">
             <div class="kpi-label">Ahorro medio / mes</div>
             <div class="kpi-value" id="kpi-ahorro-medio">—</div>
+            <div id="spark-ahorro-medio"></div>
           </div>
           <div class="kpi-card aqua">
             <div class="kpi-label">% ahorro s/ingresos</div>
             <div class="kpi-value" id="kpi-pct-ahorro">—</div>
+            <div id="spark-pct-ahorro"></div>
           </div>
           <div class="kpi-card alerta">
             <div class="kpi-label">Saldo pendiente</div>
             <div class="kpi-value" id="kpi-saldo">—</div>
+            <div id="spark-saldo"></div>
           </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Evolución</div>
+          <div id="evol-chart"></div>
         </div>
 
         <div class="card">
@@ -378,6 +439,14 @@ nav.bottom button.active{color:var(--c-ahorro);}
             <button type="button" class="link-btn" id="btn-edit-presupuestos">Editar</button>
           </div>
           <div id="presupuestos-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between" style="margin-bottom:10px;">
+            <div class="section-title" style="margin-bottom:0;">Metas de ahorro</div>
+            <button type="button" class="link-btn" id="btn-add-meta">➕ Nueva</button>
+          </div>
+          <div id="metas-list"></div>
         </div>
       </section>
 
@@ -436,6 +505,28 @@ nav.bottom button.active{color:var(--c-ahorro);}
     </div>
   </div>
 
+  <div class="modal-backdrop" id="modal-meta">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Nueva meta de ahorro</h3><button id="close-modal-meta">✕</button></div>
+      <form id="form-meta">
+        <div class="field" style="margin-bottom:12px;">
+          <label for="meta-nombre">Nombre</label>
+          <input type="text" id="meta-nombre" maxlength="60" placeholder="p. ej. Vacaciones" required>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label for="meta-objetivo">Objetivo</label>
+          <div class="amount-input"><input type="number" id="meta-objetivo" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required></div>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="meta-fecha">Fecha objetivo (opcional)</label>
+          <input type="date" id="meta-fecha">
+        </div>
+        <p class="screen-sub" style="text-align:left;font-size:12px;margin-bottom:14px;">El progreso se cuenta a partir del ahorro conjunto de este mes en adelante — el ahorro anterior no cuenta para esta meta.</p>
+        <button type="submit" class="btn btn-primary">Crear meta</button>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="modal-edit-mov">
     <div class="modal-sheet">
       <div class="modal-head"><h3>Editar movimiento</h3><button id="close-modal-edit">✕</button></div>
@@ -481,11 +572,24 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <label for="edit-obs">Observaciones (opcional)</label>
           <input type="text" id="edit-obs" maxlength="120">
         </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>Ticket (foto o PDF, opcional)</label>
+          <input type="file" id="edit-ticket" accept="image/*,application/pdf" hidden>
+          <button type="button" class="btn btn-sm btn-ghost" id="btn-ticket-pick-edit">📎 Adjuntar ticket</button>
+          <div class="ticket-chip" id="ticket-chip-edit" hidden></div>
+        </div>
         <div style="display:flex;gap:10px;">
           <button type="button" class="btn btn-danger-ghost" id="btn-edit-delete" style="flex:1;">Eliminar</button>
           <button type="submit" class="btn btn-primary" style="flex:2;">Guardar cambios</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-ticket-view">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Ticket</h3><button id="close-modal-ticket-view">✕</button></div>
+      <div id="ticket-view-body"></div>
     </div>
   </div>
 
@@ -587,6 +691,17 @@ const CATEGORIAS_INGRESO = SEED_DATA.categoriasIngreso;
 const CAT_PALETTE = ["blue","orange","aqua","yellow","magenta","green","violet","red"];
 const CAT_TOP_N = 8;
 
+const CAT_ICONS = {
+  "Alquiler o Hipoteca":"🏠", "Alimentación":"🛒", "Compras":"🛍️", "Internet":"🌐",
+  "Luz":"💡", "Gas":"🔥", "Agua":"💧", "Telefonía":"📱", "Seguros":"🛡️",
+  "Impuestos, tasas y multas":"🧾", "Prestamo Personal":"💳", "Prestamo Dari":"🏦",
+  "Prestamo Papas":"👪", "Ocio":"🎉", "Gastos extraordinarios":"✨", "Comunidad":"🏢",
+  "Transporte y carburantes":"🚗", "Matrículas y cuotas":"🎓", "Ahorro":"🐷", "Otros":"🔖",
+  "Nómina":"💼", "Horas y Pagas Extra":"⏱️", "Becas y Subvenciones":"📜",
+  "Dinero Padres":"🎁", "Hora Matinal":"🌅", "Vesprada":"🌇", "Academia":"📚",
+};
+function catIcon(categoria){ return CAT_ICONS[categoria] || '🏷️'; }
+
 const fmtEUR = new Intl.NumberFormat('es-ES', {style:'currency', currency:'EUR'});
 const fmtEUR0 = new Intl.NumberFormat('es-ES', {style:'currency', currency:'EUR', maximumFractionDigits:0});
 const fmtPct = new Intl.NumberFormat('es-ES', {style:'percent', maximumFractionDigits:1});
@@ -594,6 +709,8 @@ const fmtDate = (iso) => { const [y,m,d] = iso.split('-'); return `${d}/${m}/${y
 const mesLabel = (mesStr) => { const [y,m] = mesStr.split('-').map(Number);
   const s = new Date(y, m-1, 1).toLocaleDateString('es-ES', {month:'long', year:'numeric'});
   return s.charAt(0).toUpperCase() + s.slice(1); };
+const mesLabelShort = (mesStr) => { const [y,m] = mesStr.split('-').map(Number);
+  return new Date(y, m-1, 1).toLocaleDateString('es-ES', {month:'short'}).replace('.',''); };
 const todayISO = () => new Date().toISOString().slice(0,10);
 const mesOf = (fechaISO) => fechaISO.slice(0,7);
 const otherUser = (u) => u === 'Sergio' ? 'Carmen' : 'Sergio';
@@ -609,6 +726,7 @@ const state = {
   movsFilters: { q: '', categoria: 'todas', persona: 'todos' },
   recurrentes: [],
   presupuestos: {},
+  metas: [],
 };
 
 function $(sel){ return document.querySelector(sel); }
@@ -666,6 +784,30 @@ async function boot(){
 
 function safeLocalGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function safeLocalSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+/* ================= Tema claro/oscuro ================= */
+// Por defecto sigue el modo del móvil (prefers-color-scheme, en el CSS). Si el
+// usuario fuerza uno con el interruptor, se guarda y prevalece a partir de ahí.
+function effectiveTheme(){
+  const explicit = document.documentElement.getAttribute('data-theme');
+  if(explicit === 'light' || explicit === 'dark') return explicit;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+function applyThemeIcon(){
+  const btn = $('#btn-theme-toggle');
+  if(btn) btn.textContent = effectiveTheme() === 'dark' ? '☀️' : '🌙';
+}
+(function initTheme(){
+  const saved = safeLocalGet('finanzas_theme');
+  if(saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+})();
+applyThemeIcon();
+$('#btn-theme-toggle').addEventListener('click', () => {
+  const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  safeLocalSet('finanzas_theme', next);
+  applyThemeIcon();
+});
 
 $all('.gate-btn').forEach(b => b.addEventListener('click', () => {
   const u = b.getAttribute('data-user');
@@ -763,6 +905,11 @@ function subscribeData(db){
     state.presupuestos = map;
     renderAll();
   }, err => { console.error('presupuestos onSnapshot', err); });
+
+  db.collection('metas').onSnapshot(snap => {
+    state.metas = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('metas onSnapshot', err); });
 }
 
 /* ================= Derived data ================= */
@@ -862,14 +1009,109 @@ function movRowHTML(m, showPersona){
     <div class="mov-cat-dot" style="background:${color}"></div>
     <div class="mov-main">
       <div class="mov-concepto">${escapeHTML(m.concepto || m.categoria)}</div>
-      <div class="mov-meta">${escapeHTML(m.categoria)} · ${fmtDate(m.fecha)}${showPersona ? ' · '+m.persona : ''}${m.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
+      <div class="mov-meta">${catIcon(m.categoria)} ${escapeHTML(m.categoria)} · ${fmtDate(m.fecha)}${showPersona ? ' · '+m.persona : ''}${m.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
     </div>
     <div class="mov-amount ${m.tipo==='Ingreso'?'ingreso':'gasto'}">${m.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(m.importe)}</div>
+    ${m.ticketData ? `<button class="mov-ticket" data-ticket-view="${m.id}" title="Ver ticket">🧾</button>` : ''}
     <button class="mov-del" data-id="${m.id}" title="Eliminar">🗑</button>
   </div>`;
 }
 
 function escapeHTML(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- Ticket (foto/PDF adjunto a un movimiento) ---------- */
+const TICKET_PDF_MAX_BYTES = 650 * 1024; // deja margen bajo el límite de 1 MB por documento de Firestore
+
+function readFileAsDataURL(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImageToDataURL(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let width = img.naturalWidth || img.width, height = img.naturalHeight || img.height;
+      const scale = Math.min(1, maxDim / Math.max(width, height));
+      width = Math.max(1, Math.round(width * scale));
+      height = Math.max(1, Math.round(height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
+    img.src = url;
+  });
+}
+
+async function processTicketFile(file){
+  if(file.type.startsWith('image/')){
+    let data = await compressImageToDataURL(file, 1400, 0.72);
+    if(data.length > 700 * 1024){ // sigue pesando mucho (foto muy detallada) -> segunda pasada más agresiva
+      data = await compressImageToDataURL(file, 1000, 0.6);
+    }
+    return { data, nombre: file.name || 'ticket.jpg' };
+  }
+  if(file.type === 'application/pdf'){
+    if(file.size > TICKET_PDF_MAX_BYTES){
+      const mb = (file.size / (1024*1024)).toFixed(1);
+      throw new Error(`El PDF pesa demasiado (${mb} MB). Máximo 650 KB — prueba con una foto del ticket, o un PDF más ligero.`);
+    }
+    const data = await readFileAsDataURL(file);
+    return { data, nombre: file.name || 'ticket.pdf' };
+  }
+  throw new Error('Formato no admitido. Usa una foto (JPG/PNG) o un PDF.');
+}
+
+function isImageTicket(ticket){ return !!ticket && /^data:image\//.test(ticket.data); }
+
+function ticketChipHTML(ticket){
+  const isImg = isImageTicket(ticket);
+  const visual = isImg
+    ? `<img class="ticket-chip-thumb" src="${ticket.data}" alt="">`
+    : `<span class="ticket-chip-thumb ticket-chip-pdf">📄</span>`;
+  return `${visual}<span class="ticket-chip-name">${escapeHTML(ticket.nombre || (isImg ? 'Foto del ticket' : 'Ticket PDF'))}</span>`;
+}
+
+function setTicketChip(prefix, ticket){
+  const chip = $('#ticket-chip-'+prefix);
+  const btn = $('#btn-ticket-pick-'+prefix);
+  if(ticket){
+    chip.innerHTML = ticketChipHTML(ticket) + `<button type="button" class="ticket-chip-remove" data-ticket-remove="${prefix}" title="Quitar ticket">✕</button>`;
+    chip.hidden = false;
+    if(btn) btn.hidden = true;
+  }else{
+    chip.innerHTML = '';
+    chip.hidden = true;
+    if(btn) btn.hidden = false;
+  }
+}
+
+function downloadDataURL(dataURL, filename){
+  const a = document.createElement('a');
+  a.href = dataURL; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function openTicketViewer(ticket){
+  const body = $('#ticket-view-body');
+  if(isImageTicket(ticket)){
+    body.innerHTML = `<img class="ticket-view-img" src="${ticket.data}" alt="Ticket">`;
+  }else{
+    body.innerHTML = `<div class="empty-hint" style="padding:32px 8px;">📄 ${escapeHTML(ticket.nombre || 'ticket.pdf')}</div>
+      <button type="button" class="btn btn-primary" id="btn-ticket-download">⬇ Descargar PDF</button>`;
+    $('#btn-ticket-download').addEventListener('click', () => downloadDataURL(ticket.data, ticket.nombre || 'ticket.pdf'));
+  }
+  $('#modal-ticket-view').classList.add('show');
+}
 
 function renderRecent(){
   const sorted = state.movimientos.slice().sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
@@ -926,6 +1168,20 @@ function renderResumen(){
   $('#kpi-pct-ahorro').textContent = ingresosTotal ? fmtPct.format(ahorroTotal/ingresosTotal) : '—';
   $('#kpi-saldo').textContent = fmtEUR0.format(Math.abs(last.saldoFin));
 
+  // Mini gráficos de tendencia: cada tarjeta usa la serie mensual que de verdad explica su número.
+  const recent = timeline.slice(-12);
+  let acc = 0;
+  const serieAcumulado = recent.map(r => (acc += r.ahorroConjunto));
+  const serieMensual = recent.map(r => r.ahorroConjunto);
+  const seriePct = recent.map(r => { const ing = r.ingS+r.ingC; return ing ? r.ahorroConjunto/ing : 0; });
+  const serieSaldo = recent.map(r => r.saldoFin);
+  $('#spark-ahorro-total').innerHTML = svgSparkline(serieAcumulado);
+  $('#spark-ahorro-medio').innerHTML = svgSparkline(serieMensual, {bars:true});
+  $('#spark-pct-ahorro').innerHTML = svgSparkline(seriePct, {bars:true});
+  $('#spark-saldo').innerHTML = svgSparkline(serieSaldo);
+
+  $('#evol-chart').innerHTML = evolChartHTML(timeline);
+
   const row = timeline.find(r => r.mes === state.resumenMes) || last;
   const tbody = $('#resumen-tbody');
   const line = (label, ing, gas, ah, isTotal) => `<tr class="${isTotal?'total':''}">
@@ -942,13 +1198,13 @@ function renderResumen(){
   const restSum = withVals.slice(CAT_TOP_N).reduce((s,[,v])=>s+v,0);
   const restCount = withVals.slice(CAT_TOP_N).length;
   const maxVal = Math.max(1, ...top.map(([,v])=>v), restSum);
-  const catHTML = (name, val, colorVar) => `<div class="cat-row">
+  const catHTML = (name, val, colorVar, icon) => `<div class="cat-row">
       <div class="cat-swatch" style="background:${colorVar}"></div>
-      <div class="cat-name">${escapeHTML(name)}</div>
+      <div class="cat-name">${icon ? icon+' ' : ''}${escapeHTML(name)}</div>
       <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,(val/maxVal)*100)}%;background:${colorVar}"></div></div>
       <div class="cat-value">${fmtEUR.format(val)}</div>
     </div>`;
-  let html = top.map(([name,val],i) => catHTML(name, val, `var(--${CAT_PALETTE[i]})`)).join('');
+  let html = top.map(([name,val],i) => catHTML(name, val, `var(--${CAT_PALETTE[i]})`, catIcon(name))).join('');
   if(restCount > 0) html += catHTML(`Otros (${restCount})`, restSum, 'var(--neutral)');
   $('#cat-breakdown').innerHTML = html || '<div class="empty-hint">Sin gastos este mes.</div>';
 
@@ -962,6 +1218,12 @@ function renderResumen(){
       .map(([categoria, p]) => presupuestoRowHTML(categoria, p.limite, gastoMap[categoria] || 0))
       .join('');
   }
+
+  const metasSorted = state.metas.slice().sort((a,b) =>
+    (a.conseguida?1:0) - (b.conseguida?1:0) || (b.creadoEn||'').localeCompare(a.creadoEn||''));
+  $('#metas-list').innerHTML = metasSorted.length
+    ? metasSorted.map(m => metaRowHTML(m, progresoMeta(m, timeline))).join('')
+    : '<div class="empty-hint">Aún no tienes metas de ahorro. Pulsa "➕ Nueva" para crear una.</div>';
 }
 
 function presupuestoRowHTML(categoria, limite, gastado){
@@ -971,10 +1233,100 @@ function presupuestoRowHTML(categoria, limite, gastado){
   if(pct >= 1) color = 'var(--c-alerta)';
   else if(pct >= 0.7) color = 'var(--yellow)';
   return `<div class="cat-row">
-      <div class="cat-name" style="flex:0 0 42%;">${escapeHTML(categoria)}</div>
+      <div class="cat-name" style="flex:0 0 42%;">${catIcon(categoria)} ${escapeHTML(categoria)}</div>
       <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,pctClamped*100)}%;background:${color}"></div></div>
       <div class="cat-value" style="width:auto;min-width:104px;">${fmtEUR0.format(gastado)} / ${fmtEUR0.format(limite)}</div>
     </div>`;
+}
+
+/* ================= Mini gráficos (SVG a mano, sin librerías) ================= */
+function svgSparkline(values, opts){
+  opts = opts || {};
+  const w = opts.w || 60, h = opts.h || 22;
+  if(!values || values.length < 2) return '';
+  const max = Math.max(...values, 0), min = Math.min(...values, 0);
+  const range = (max - min) || 1;
+  const stepX = w / (values.length - 1);
+  const y = (v) => h - ((v - min) / range) * h;
+  if(opts.bars){
+    const bw = Math.max(2, (w / values.length) * 0.6);
+    const zeroY = y(0);
+    const rects = values.map((v,i) => {
+      const cx = i * stepX;
+      const x = Math.max(0, Math.min(w - bw, cx - bw/2));
+      const vy = y(v);
+      const barY = Math.min(vy, zeroY), barH = Math.max(1, Math.abs(vy - zeroY));
+      const op = v < 0 ? 0.4 : 0.9;
+      return `<rect x="${x.toFixed(1)}" y="${barY.toFixed(1)}" width="${bw.toFixed(1)}" height="${barH.toFixed(1)}" rx="1" fill="currentColor" opacity="${op}"/>`;
+    }).join('');
+    return `<svg class="kpi-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${rects}</svg>`;
+  }
+  const pts = values.map((v,i) => `${(i*stepX).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  return `<svg class="kpi-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  </svg>`;
+}
+
+function evolChartHTML(timeline){
+  const rows = timeline.slice(-12);
+  if(rows.length < 2) return '<div class="empty-hint">Todavía no hay suficientes meses para ver una evolución.</div>';
+  const W = 300, H = 108;
+  const maxVal = Math.max(1, ...rows.map(r => Math.max(r.ingS+r.ingC, r.gasS+r.gasC)));
+  const groupW = W / rows.length;
+  const barW = Math.max(3, groupW * 0.34);
+  const svgBars = rows.map((r, i) => {
+    const ing = r.ingS + r.ingC, gas = r.gasS + r.gasC;
+    const cx = i*groupW + groupW/2;
+    const ingH = Math.max(1, (ing/maxVal) * H), gasH = Math.max(1, (gas/maxVal) * H);
+    const xIng = cx - barW - 1, xGas = cx + 1;
+    return `<rect x="${xIng.toFixed(1)}" y="${(H-ingH).toFixed(1)}" width="${barW.toFixed(1)}" height="${ingH.toFixed(1)}" rx="2" fill="var(--c-ingreso)"/>` +
+           `<rect x="${xGas.toFixed(1)}" y="${(H-gasH).toFixed(1)}" width="${barW.toFixed(1)}" height="${gasH.toFixed(1)}" rx="2" fill="var(--c-gasto)"/>` +
+           `<rect x="${(i*groupW).toFixed(1)}" y="0" width="${groupW.toFixed(1)}" height="${H}" fill="transparent" class="evol-hit" `+
+           `data-label="${escapeHTML(mesLabel(r.mes))}" data-ing="${escapeHTML(fmtEUR.format(ing))}" data-gas="${escapeHTML(fmtEUR.format(gas))}"/>`;
+  }).join('');
+  // El año solo se repite cuando cambia (o en la primera columna) -- así, si
+  // el histórico salta de un año a otro, un mismo nombre de mes (p.ej. "abr")
+  // no puede confundirse con el de otro año.
+  let lastYear = null;
+  const labels = rows.map((r,i) => {
+    const y = r.mes.slice(0,4);
+    const showYear = (i===0 || y !== lastYear);
+    lastYear = y;
+    const yearLine = showYear ? `<span class="evol-mlabel-yr">${escapeHTML(y)}</span>` : '';
+    return `<div class="evol-mlabel">${escapeHTML(mesLabelShort(r.mes))}${yearLine}</div>`;
+  }).join('');
+  return `<svg class="evol-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svgBars}</svg>
+    <div class="evol-labels">${labels}</div>
+    <div class="evol-legend"><span><i style="background:var(--c-ingreso)"></i>Ingresos</span><span><i style="background:var(--c-gasto)"></i>Gastos</span></div>
+    <div class="evol-tooltip" id="evol-tooltip"></div>`;
+}
+
+/* ================= Metas de ahorro ================= */
+function progresoMeta(meta, timeline){
+  return timeline
+    .filter(r => r.mes >= meta.mesCreacion)
+    .reduce((s,r) => s + r.ahorroConjunto, 0);
+}
+function metaRowHTML(meta, progreso){
+  const pct = meta.objetivo > 0 ? progreso / meta.objetivo : 0;
+  const pctClamped = Math.max(0, Math.min(1, pct));
+  const conseguida = !!meta.conseguida;
+  const color = conseguida ? 'var(--c-ingreso)' : (progreso < 0 ? 'var(--c-alerta)' : 'var(--c-ahorro)');
+  return `<div class="meta-row" data-id="${meta.id}">
+    <div class="meta-top">
+      <div class="meta-nombre${conseguida?' conseguida':''}">${conseguida?'🏆 ':'🎯 '}${escapeHTML(meta.nombre)}</div>
+      <div class="meta-pct">${fmtPct.format(pctClamped)}</div>
+    </div>
+    <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,pctClamped*100)}%;background:${color}"></div></div>
+    <div class="meta-amounts">
+      <span>${fmtEUR0.format(progreso)} de ${fmtEUR0.format(meta.objetivo)}</span>
+      <span>${meta.fechaObjetivo ? 'para ' + fmtDate(meta.fechaObjetivo) : ''}</span>
+    </div>
+    <div class="meta-actions">
+      <button type="button" data-meta-toggle="${meta.id}">${conseguida ? 'Reabrir' : 'Marcar conseguida'}</button>
+      <button type="button" class="danger meta-del" data-meta-del="${meta.id}">Eliminar</button>
+    </div>
+  </div>`;
 }
 
 function renderSaldo(){
@@ -1009,7 +1361,7 @@ function recurrenteRowHTML(r){
   return `<div class="rec-row">
     <div class="rec-main">
       <div class="rec-concepto">${escapeHTML(r.concepto)}</div>
-      <div class="rec-meta">${escapeHTML(r.categoria)} · ${r.persona}${r.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
+      <div class="rec-meta">${catIcon(r.categoria)} ${escapeHTML(r.categoria)} · ${r.persona}${r.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
     </div>
     <div class="rec-amount">${r.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(r.importe)}</div>
     <button type="button" class="btn btn-sm btn-primary" data-add-rec="${r.id}">Añadir</button>
@@ -1058,7 +1410,7 @@ function manageRecurrenteRowHTML(r){
   return `<div class="rec-row">
     <div class="rec-main">
       <div class="rec-concepto">${escapeHTML(r.concepto)}${r.activo === false ? ' <span class="muted">(pausado)</span>' : ''}</div>
-      <div class="rec-meta">${escapeHTML(r.categoria)} · ${r.persona} · ${fmtEUR.format(r.importe)}</div>
+      <div class="rec-meta">${catIcon(r.categoria)} ${escapeHTML(r.categoria)} · ${r.persona} · ${fmtEUR.format(r.importe)}</div>
     </div>
     <button type="button" class="btn btn-sm btn-ghost" data-toggle-rec="${r.id}">${r.activo === false ? 'Reactivar' : 'Pausar'}</button>
     <button type="button" class="mov-del" data-del-rec="${r.id}" title="Eliminar">🗑</button>
@@ -1160,7 +1512,7 @@ function categoriaOptionsForTipoPersona(tipo, persona){
 function syncCategoriaSelect(selEl, tipo, persona){
   const options = categoriaOptionsForTipoPersona(tipo, persona);
   const cur = selEl.value;
-  selEl.innerHTML = options.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  selEl.innerHTML = options.map(c => `<option value="${escapeHTML(c)}">${catIcon(c)} ${escapeHTML(c)}</option>`).join('');
   if(options.includes(cur)) selEl.value = cur;
   return options;
 }
@@ -1212,11 +1564,14 @@ function openEditModal(id){
   $('#edit-concepto').value = m.concepto || '';
   $('#edit-compartido').checked = !!m.compartido;
   $('#edit-obs').value = m.obs || '';
+  ticketEdit = m.ticketData ? { data: m.ticketData, nombre: m.ticketNombre || '' } : null;
+  setTicketChip('edit', ticketEdit);
   $('#btn-edit-delete').textContent = 'Eliminar';
   $('#modal-edit-mov').classList.add('show');
 }
 document.addEventListener('click', (e) => {
   if(e.target.closest('.mov-del')) return;
+  if(e.target.closest('.mov-ticket')) return;
   const row = e.target.closest('.mov-row[data-id]');
   if(!row) return;
   if(!row.closest('#movs-list') && !row.closest('#recent-list')) return;
@@ -1224,6 +1579,51 @@ document.addEventListener('click', (e) => {
 });
 $('#close-modal-edit').addEventListener('click', () => $('#modal-edit-mov').classList.remove('show'));
 $('#modal-edit-mov').addEventListener('click', (e) => { if(e.target.id === 'modal-edit-mov') $('#modal-edit-mov').classList.remove('show'); });
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-ticket-view]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-ticket-view');
+  const m = state.movimientos.find(x => x.id === id);
+  if(!m || !m.ticketData) return;
+  openTicketViewer({ data: m.ticketData, nombre: m.ticketNombre });
+});
+$('#close-modal-ticket-view').addEventListener('click', () => $('#modal-ticket-view').classList.remove('show'));
+$('#modal-ticket-view').addEventListener('click', (e) => { if(e.target.id === 'modal-ticket-view') $('#modal-ticket-view').classList.remove('show'); });
+
+let ticketAdd = null;
+let ticketEdit = null;
+
+$('#btn-ticket-pick-add').addEventListener('click', () => $('#in-ticket').click());
+$('#btn-ticket-pick-edit').addEventListener('click', () => $('#edit-ticket').click());
+
+$('#in-ticket').addEventListener('change', async () => {
+  const file = $('#in-ticket').files[0];
+  $('#in-ticket').value = '';
+  if(!file) return;
+  try{
+    ticketAdd = await processTicketFile(file);
+    setTicketChip('add', ticketAdd);
+  }catch(err){ showToast(err.message || 'No se pudo adjuntar el archivo.'); }
+});
+
+$('#edit-ticket').addEventListener('change', async () => {
+  const file = $('#edit-ticket').files[0];
+  $('#edit-ticket').value = '';
+  if(!file) return;
+  try{
+    ticketEdit = await processTicketFile(file);
+    setTicketChip('edit', ticketEdit);
+  }catch(err){ showToast(err.message || 'No se pudo adjuntar el archivo.'); }
+});
+
+document.addEventListener('click', (e) => {
+  const rm = e.target.closest('[data-ticket-remove]');
+  if(!rm) return;
+  const prefix = rm.getAttribute('data-ticket-remove');
+  if(prefix === 'add') ticketAdd = null; else ticketEdit = null;
+  setTicketChip(prefix, null);
+});
 
 $('#form-edit-mov').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1245,6 +1645,7 @@ $('#form-edit-mov').addEventListener('submit', async (e) => {
   try{
     await state.db.doc('movimientos/'+id).set({
       fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+      ticketData: ticketEdit ? ticketEdit.data : null, ticketNombre: ticketEdit ? ticketEdit.nombre : null,
       creadoPor: original.creadoPor, creadoEn: original.creadoEn,
       recurrenteId: original.recurrenteId || null,
       editadoPor: state.user, editadoEn: new Date().toISOString()
@@ -1304,6 +1705,7 @@ $('#form-add').addEventListener('submit', async (e) => {
     }
     await state.db.collection('movimientos').add({
       fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+      ticketData: ticketAdd ? ticketAdd.data : null, ticketNombre: ticketAdd ? ticketAdd.nombre : null,
       recurrenteId, creadoPor: state.user, creadoEn: new Date().toISOString()
     });
     showToast(repetir ? 'Guardado y marcado como recurrente ✓' : 'Movimiento guardado ✓');
@@ -1311,6 +1713,7 @@ $('#form-add').addEventListener('submit', async (e) => {
     $('#in-compartido').checked = false;
     $('#in-recurrente').checked = false;
     $('#in-fecha').value = todayISO();
+    ticketAdd = null; setTicketChip('add', null);
     $('#in-importe').focus();
   }catch(err){
     console.error(err);
@@ -1387,6 +1790,105 @@ $('#form-liq').addEventListener('submit', async (e) => {
   }finally{
     btn.disabled = false; btn.textContent = 'Guardar pago';
   }
+});
+
+/* ================= Evolución: tooltip al tocar una columna ================= */
+document.addEventListener('click', (e) => {
+  const hit = e.target.closest('.evol-hit');
+  if(!hit) return;
+  const tip = $('#evol-tooltip');
+  if(!tip) return;
+  tip.innerHTML = `<strong>${hit.getAttribute('data-label')}</strong><br>Ingresos: ${hit.getAttribute('data-ing')} · Gastos: ${hit.getAttribute('data-gas')}`;
+  tip.classList.add('show');
+});
+
+/* ================= Metas de ahorro ================= */
+$('#btn-add-meta').addEventListener('click', () => {
+  $('#form-meta').reset();
+  $('#modal-meta').classList.add('show');
+});
+$('#close-modal-meta').addEventListener('click', () => $('#modal-meta').classList.remove('show'));
+$('#modal-meta').addEventListener('click', (e) => { if(e.target.id === 'modal-meta') $('#modal-meta').classList.remove('show'); });
+
+$('#form-meta').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nombre = $('#meta-nombre').value.trim();
+  const objetivo = parseFloat($('#meta-objetivo').value);
+  const fechaObjetivo = $('#meta-fecha').value || null;
+  if(!nombre || !(objetivo > 0)){ showToast('Revisa el nombre y el objetivo.'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await state.db.collection('metas').add({
+      nombre, objetivo: Math.round(objetivo*100)/100, fechaObjetivo,
+      mesCreacion: todayISO().slice(0,7), conseguida: false,
+      creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    showToast('Meta creada ✓');
+    $('#modal-meta').classList.remove('show');
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Crear meta';
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const toggle = e.target.closest('[data-meta-toggle]');
+  if(!toggle) return;
+  const id = toggle.getAttribute('data-meta-toggle');
+  const meta = state.metas.find(m => m.id === id);
+  if(!meta) return;
+  try{
+    await state.db.doc('metas/'+id).set({
+      nombre: meta.nombre, objetivo: meta.objetivo, fechaObjetivo: meta.fechaObjetivo || null,
+      mesCreacion: meta.mesCreacion, creadoPor: meta.creadoPor, creadoEn: meta.creadoEn,
+      conseguida: !meta.conseguida
+    });
+  }catch(err){ console.error(err); showToast('No se pudo actualizar.'); }
+});
+
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-meta-del]');
+  if(!del) return;
+  if(del.classList.contains('confirm')){
+    const id = del.getAttribute('data-meta-del');
+    del.textContent = '…';
+    try{ await state.db.doc('metas/'+id).delete(); showToast('Meta eliminada'); }
+    catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
+  } else {
+    $all('.meta-del.confirm').forEach(x => { x.classList.remove('confirm'); x.textContent = 'Eliminar'; });
+    del.classList.add('confirm'); del.textContent = 'Confirmar';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent = 'Eliminar'; } }, 3000);
+  }
+});
+
+/* ================= Exportar a CSV ================= */
+// Punto y coma como separador y coma decimal: así el CSV lo abre Excel en
+// español directamente en columnas, sin tener que importarlo a mano.
+const fmtNumCSV = new Intl.NumberFormat('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2, useGrouping:false});
+function csvEscape(v){
+  const s = v == null ? '' : String(v);
+  return /[";\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+$('#btn-export').addEventListener('click', () => {
+  const rows = [['Tipo de fila','Fecha','Movimiento/Liquidación','Persona / De','Para (si es liquidación)','Categoría','Concepto','Importe (€)','Compartido','Observaciones','Ticket']];
+  state.movimientos.slice().sort((a,b) => a.fecha.localeCompare(b.fecha)).forEach(m => {
+    rows.push(['Movimiento', m.fecha, m.tipo, m.persona, '', m.categoria, m.concepto || '', fmtNumCSV.format(m.importe), m.compartido ? 'Sí' : 'No', m.obs || '', m.ticketData ? 'Sí' : 'No']);
+  });
+  state.liquidaciones.slice().sort((a,b) => a.fecha.localeCompare(b.fecha)).forEach(l => {
+    rows.push(['Liquidación', l.fecha, 'Pago', l.de, l.para, '', l.concepto || '', fmtNumCSV.format(l.importe), '', '', '']);
+  });
+  const csv = '﻿' + rows.map(r => r.map(csvEscape).join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'nuestras-finanzas-' + todayISO() + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exportado ✓');
 });
 
 boot();
