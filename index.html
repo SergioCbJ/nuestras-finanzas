@@ -217,12 +217,13 @@ nav.bottom button.active{color:var(--c-ahorro);}
   <div id="screen-loading" class="full-screen">
     <div class="spinner"></div>
     <p class="screen-sub">Cargando…</p>
+    <p class="screen-sub" id="loading-hint" style="display:none;font-size:12px;opacity:0.75;max-width:260px;text-align:center;">Está tardando más de lo normal. Comprueba tu conexión a internet. Si esto no avanza, cierra otras pestañas donde tengas la app abierta y recarga la página.</p>
   </div>
 
   <div id="screen-error" class="full-screen" style="display:none;">
     <div class="brand-mark">💶</div>
     <div class="screen-title">No se puede conectar</div>
-    <p class="screen-sub" id="error-message">Esta página necesita ejecutarse dentro de Claude para guardar los datos compartidos entre Sergio y Carmen.</p>
+    <p class="screen-sub" id="error-message">No se ha podido conectar con la base de datos. Comprueba tu conexión a internet y recarga la página; si el problema sigue, puede que falte configurar el proyecto de Firebase.</p>
   </div>
 
   <div id="screen-gate" class="full-screen" style="display:none;">
@@ -520,12 +521,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "PEGA_AQUI_apiKey",
-  authDomain: "PEGA_AQUI_authDomain",
-  projectId: "PEGA_AQUI_projectId",
-  storageBucket: "PEGA_AQUI_storageBucket",
-  messagingSenderId: "PEGA_AQUI_messagingSenderId",
-  appId: "PEGA_AQUI_appId"
+  apiKey: "AIzaSyBQg5BtoGZTorxgn-keUPGGCSxwBoiMas8",
+  authDomain: "finanzas-7876c.firebaseapp.com",
+  projectId: "finanzas-7876c",
+  storageBucket: "finanzas-7876c.firebasestorage.app",
+  messagingSenderId: "42742648070",
+  appId: "1:42742648070:web:2398bdd72026071d9ea287"
+  // measurementId (G-C1G7BGB1CR) no se incluye: es solo para Google Analytics,
+  // que esta app no usa. No hace falta para que Firestore funcione.
 };
 
 let fs = null;
@@ -614,21 +617,41 @@ function showToast(msg){
 }
 
 /* ================= Bootstrapping ================= */
+/* Evita que la pantalla de "Cargando…" se quede colgada para siempre si Firestore
+   tarda en responder (config incorrecta, la app abierta en varias pestañas a la vez,
+   red lenta...): a los 15s dejamos de esperar al sembrado inicial y seguimos igualmente. */
+function withTimeout(promise, ms, label){
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout: ' + (label || ''))), ms);
+    promise.then(
+      v => { clearTimeout(t); resolve(v); },
+      e => { clearTimeout(t); reject(e); }
+    );
+  });
+}
+
 async function boot(){
+  const hintTimer = setTimeout(() => {
+    const hint = $('#loading-hint');
+    if(hint) hint.style.display = 'block';
+  }, 6000);
+
   let db = null;
   try{ db = fs ? makeDb(fs) : null; }catch(e){ console.error('db init error', e); db = null; }
 
   if(!db){
+    clearTimeout(hintTimer);
     $('#screen-loading').style.display = 'none';
     $('#screen-error').style.display = 'flex';
     return;
   }
   state.db = db;
 
-  try{ await maybeSeed(db); }catch(e){ /* seeding is best-effort; app still works if it fails */ console.error('seed error', e); }
+  try{ await withTimeout(maybeSeed(db), 15000, 'maybeSeed'); }catch(e){ /* seeding es best-effort; si tarda o falla, la app sigue igual y los datos llegan por onSnapshot en cuanto la conexión responda */ console.error('seed error', e); }
 
   subscribeData(db);
 
+  clearTimeout(hintTimer);
   const savedUser = safeLocalGet('finanzas_user');
   $('#screen-loading').style.display = 'none';
   if(savedUser === 'Sergio' || savedUser === 'Carmen'){
