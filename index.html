@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nuestras Finanzas</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2a78d6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Finanzas">
 <style>
 :root{
   --surface:#fcfcfb; --plane:#f9f9f7; --ink:#0b0b0b; --ink-soft:#52514e; --muted:#898781;
@@ -139,7 +146,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .cat-value{font-size:13px;font-weight:700;width:74px;text-align:right;font-variant-numeric:tabular-nums;flex:none;}
 
 /* ---------- Movement list ---------- */
-.mov-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--grid);}
+.mov-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--grid);cursor:pointer;}
 .mov-row:last-child{border-bottom:none;}
 .mov-cat-dot{width:8px;height:8px;border-radius:50%;flex:none;}
 .mov-main{flex:1;min-width:0;}
@@ -154,6 +161,14 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .mov-del.confirm{color:var(--c-alerta);font-weight:800;font-size:11px;}
 
 .empty-hint{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 8px;}
+
+/* ---------- Recurring rows ---------- */
+.rec-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--grid);}
+.rec-row:last-child{border-bottom:none;}
+.rec-main{flex:1;min-width:0;}
+.rec-concepto{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rec-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.rec-amount{font-weight:800;font-size:13.5px;flex:none;font-variant-numeric:tabular-nums;color:var(--ink-soft);margin-right:2px;}
 
 /* ---------- Saldo view ---------- */
 .saldo-hero{text-align:center;padding:22px 12px;}
@@ -232,6 +247,14 @@ nav.bottom button.active{color:var(--c-ahorro);}
     <main>
       <!-- ===================== AÑADIR ===================== -->
       <section class="view" id="view-add">
+        <div class="card" id="card-recurrentes" style="display:none;">
+          <div class="row-between" style="margin-bottom:10px;">
+            <div class="section-title" style="margin-bottom:0;">Recurrentes de este mes</div>
+            <button type="button" class="link-btn" id="btn-manage-recurrentes">Gestionar</button>
+          </div>
+          <div id="recurrentes-list"></div>
+        </div>
+
         <div class="card">
           <div class="section-title">Añadir movimiento</div>
           <form id="form-add">
@@ -271,6 +294,10 @@ nav.bottom button.active{color:var(--c-ahorro);}
               <span class="field-label">Gasto compartido</span>
               <label class="switch"><input type="checkbox" id="in-compartido"><span class="track"></span></label>
             </div>
+            <div class="toggle-row">
+              <span class="field-label">🔁 Repetir cada mes</span>
+              <label class="switch"><input type="checkbox" id="in-recurrente"><span class="track"></span></label>
+            </div>
             <div class="field" style="margin-bottom:14px;">
               <label for="in-obs">Observaciones (opcional)</label>
               <input type="text" id="in-obs" maxlength="120">
@@ -290,6 +317,19 @@ nav.bottom button.active{color:var(--c-ahorro);}
         <div class="card">
           <div class="month-select-row">
             <select id="movs-mes-select"></select>
+          </div>
+          <div class="field" style="margin-bottom:10px;">
+            <input type="text" id="movs-search" placeholder="Buscar por concepto u observación…">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div class="field"><select id="movs-cat-filter"></select></div>
+            <div class="field">
+              <select id="movs-persona-filter">
+                <option value="todos">Sergio y Carmen</option>
+                <option value="Sergio">Solo Sergio</option>
+                <option value="Carmen">Solo Carmen</option>
+              </select>
+            </div>
           </div>
           <div id="movs-list"></div>
         </div>
@@ -329,6 +369,14 @@ nav.bottom button.active{color:var(--c-ahorro);}
         <div class="card">
           <div class="section-title">Gasto por categoría</div>
           <div id="cat-breakdown"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between" style="margin-bottom:10px;">
+            <div class="section-title" style="margin-bottom:0;">Presupuestos</div>
+            <button type="button" class="link-btn" id="btn-edit-presupuestos">Editar</button>
+          </div>
+          <div id="presupuestos-list"></div>
         </div>
       </section>
 
@@ -386,6 +434,77 @@ nav.bottom button.active{color:var(--c-ahorro);}
       </form>
     </div>
   </div>
+
+  <div class="modal-backdrop" id="modal-edit-mov">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Editar movimiento</h3><button id="close-modal-edit">✕</button></div>
+      <form id="form-edit-mov">
+        <input type="hidden" id="edit-id">
+        <div class="field" style="margin-bottom:12px;">
+          <label>Tipo</label>
+          <div class="segmented tipo" id="edit-seg-tipo">
+            <button type="button" data-val="Gasto" class="active">Gasto</button>
+            <button type="button" data-val="Ingreso">Ingreso</button>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label>¿Quién?</label>
+          <div class="segmented persona" id="edit-seg-persona">
+            <button type="button" data-val="Sergio">Sergio</button>
+            <button type="button" data-val="Carmen">Carmen</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="field">
+            <label for="edit-importe">Importe</label>
+            <div class="amount-input"><input type="number" id="edit-importe" inputmode="decimal" step="0.01" min="0.01" required></div>
+          </div>
+          <div class="field">
+            <label for="edit-fecha">Fecha</label>
+            <input type="date" id="edit-fecha" required>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label for="edit-categoria">Categoría</label>
+          <select id="edit-categoria" required></select>
+        </div>
+        <div class="field" style="margin-bottom:6px;">
+          <label for="edit-concepto">Concepto</label>
+          <input type="text" id="edit-concepto" required maxlength="80">
+        </div>
+        <div class="toggle-row" id="edit-row-compartido">
+          <span class="field-label">Gasto compartido</span>
+          <label class="switch"><input type="checkbox" id="edit-compartido"><span class="track"></span></label>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="edit-obs">Observaciones (opcional)</label>
+          <input type="text" id="edit-obs" maxlength="120">
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="btn btn-danger-ghost" id="btn-edit-delete" style="flex:1;">Eliminar</button>
+          <button type="submit" class="btn btn-primary" style="flex:2;">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-recurrentes">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Gastos e ingresos recurrentes</h3><button id="close-modal-recurrentes">✕</button></div>
+      <div id="manage-recurrentes-list"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-presupuestos">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Editar presupuestos</h3><button id="close-modal-presupuestos">✕</button></div>
+      <p class="screen-sub" style="text-align:left;max-width:none;margin:-6px 0 4px;">Pon un límite mensual a las categorías que quieras controlar. Deja en blanco las que no te interesen.</p>
+      <form id="form-presupuestos">
+        <div id="presupuestos-form-fields" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button type="submit" class="btn btn-primary" style="margin-top:14px;">Guardar presupuestos</button>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -396,25 +515,34 @@ nav.bottom button.active{color:var(--c-ahorro);}
    acceso por sí solas, el acceso real lo controlan las reglas de Firestore (ver guía). */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import {
-  getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc,
+  initializeFirestore, persistentLocalCache, collection, doc, getDoc, setDoc, addDoc, deleteDoc,
   onSnapshot, runTransaction
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBQg5BtoGZTorxgn-keUPGGCSxwBoiMas8",
-  authDomain: "finanzas-7876c.firebaseapp.com",
-  projectId: "finanzas-7876c",
-  storageBucket: "finanzas-7876c.firebasestorage.app",
-  messagingSenderId: "42742648070",
-  appId: "1:42742648070:web:2398bdd72026071d9ea287",
-  measurementId: "G-C1G7BGB1CR"
+  apiKey: "PEGA_AQUI_apiKey",
+  authDomain: "PEGA_AQUI_authDomain",
+  projectId: "PEGA_AQUI_projectId",
+  storageBucket: "PEGA_AQUI_storageBucket",
+  messagingSenderId: "PEGA_AQUI_messagingSenderId",
+  appId: "PEGA_AQUI_appId"
 };
 
 let fs = null;
 try{
   const fbApp = initializeApp(firebaseConfig);
-  fs = getFirestore(fbApp);
+  // localCache activa la persistencia offline: los datos ya vistos se leen del
+  // móvil sin conexión, y lo que añadas/edites/borres sin cobertura se guarda
+  // en cola y se sincroniza solo en cuanto vuelve la señal.
+  fs = initializeFirestore(fbApp, { localCache: persistentLocalCache() });
 }catch(e){ console.error('Firebase init error', e); fs = null; }
+
+/* PWA: registra el service worker (cascarón de la app disponible sin conexión). */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(e => console.error('SW register error', e));
+  });
+}
 
 /* Adaptador: le da al resto de la app (sin tocar ni una línea más abajo) la misma
    forma que ya usaba (doc/collection, get/set/delete/add/onSnapshot). */
@@ -472,6 +600,9 @@ const state = {
   activeView: 'add',
   resumenMes: null,
   movsMes: null,
+  movsFilters: { q: '', categoria: 'todas', persona: 'todos' },
+  recurrentes: [],
+  presupuestos: {},
 };
 
 function $(sel){ return document.querySelector(sel); }
@@ -594,6 +725,18 @@ function subscribeData(db){
     state.liquidaciones = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
     renderAll();
   }, err => { console.error('liquidaciones onSnapshot', err); });
+
+  db.collection('recurrentes').onSnapshot(snap => {
+    state.recurrentes = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('recurrentes onSnapshot', err); });
+
+  db.collection('presupuestos').onSnapshot(snap => {
+    const map = {};
+    snap.docs.forEach(d => { map[d.id] = d.data(); });
+    state.presupuestos = map;
+    renderAll();
+  }, err => { console.error('presupuestos onSnapshot', err); });
 }
 
 /* ================= Derived data ================= */
@@ -653,6 +796,7 @@ function renderAll(){
   renderMovs();
   renderResumen();
   renderSaldo();
+  renderRecurrentes();
 }
 
 function populateMonthSelectors(){
@@ -704,13 +848,36 @@ function renderRecent(){
 
 function renderMovs(){
   const mes = state.movsMes;
+  const {q, categoria, persona} = state.movsFilters;
+  const qLower = q.trim().toLowerCase();
   const list = state.movimientos
     .filter(m => mes === 'todos' || m.mes === mes)
+    .filter(m => categoria === 'todas' || m.categoria === categoria)
+    .filter(m => persona === 'todos' || m.persona === persona)
+    .filter(m => !qLower || (m.concepto||'').toLowerCase().includes(qLower) || (m.obs||'').toLowerCase().includes(qLower))
     .sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
   $('#movs-list').innerHTML = list.length
     ? list.map(m => movRowHTML(m, true)).join('')
-    : '<div class="empty-hint">No hay movimientos en este periodo.</div>';
+    : '<div class="empty-hint">No hay movimientos que coincidan.</div>';
 }
+
+function allCategoriasForFilter(){
+  const set = new Set(CATEGORIAS_GASTO);
+  Object.values(CATEGORIAS_INGRESO).forEach(arr => arr.forEach(c => set.add(c)));
+  return Array.from(set);
+}
+
+function populateMovsFilters(){
+  const sel = $('#movs-cat-filter');
+  if(sel.dataset.built) return;
+  sel.innerHTML = '<option value="todas">Todas las categorías</option>' +
+    allCategoriasForFilter().map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  sel.dataset.built = '1';
+}
+populateMovsFilters();
+$('#movs-search').addEventListener('input', e => { state.movsFilters.q = e.target.value; renderMovs(); });
+$('#movs-cat-filter').addEventListener('change', e => { state.movsFilters.categoria = e.target.value; renderMovs(); });
+$('#movs-persona-filter').addEventListener('change', e => { state.movsFilters.persona = e.target.value; renderMovs(); });
 
 function renderResumen(){
   const timeline = fullTimeline();
@@ -751,6 +918,30 @@ function renderResumen(){
   let html = top.map(([name,val],i) => catHTML(name, val, `var(--${CAT_PALETTE[i]})`)).join('');
   if(restCount > 0) html += catHTML(`Otros (${restCount})`, restSum, 'var(--neutral)');
   $('#cat-breakdown').innerHTML = html || '<div class="empty-hint">Sin gastos este mes.</div>';
+
+  const gastoMap = Object.fromEntries(cats);
+  const presEntries = Object.entries(state.presupuestos).filter(([,v]) => v && v.limite > 0);
+  if(!presEntries.length){
+    $('#presupuestos-list').innerHTML = '<div class="empty-hint">Aún no has definido presupuestos. Pulsa "Editar" para poner un límite mensual a alguna categoría.</div>';
+  } else {
+    $('#presupuestos-list').innerHTML = presEntries
+      .sort((a,b) => (gastoMap[b[0]]||0)/b[1].limite - (gastoMap[a[0]]||0)/a[1].limite)
+      .map(([categoria, p]) => presupuestoRowHTML(categoria, p.limite, gastoMap[categoria] || 0))
+      .join('');
+  }
+}
+
+function presupuestoRowHTML(categoria, limite, gastado){
+  const pct = limite > 0 ? gastado / limite : 0;
+  const pctClamped = Math.min(1, pct);
+  let color = 'var(--c-ahorro)';
+  if(pct >= 1) color = 'var(--c-alerta)';
+  else if(pct >= 0.7) color = 'var(--yellow)';
+  return `<div class="cat-row">
+      <div class="cat-name" style="flex:0 0 42%;">${escapeHTML(categoria)}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,pctClamped*100)}%;background:${color}"></div></div>
+      <div class="cat-value" style="width:auto;min-width:104px;">${fmtEUR0.format(gastado)} / ${fmtEUR0.format(limite)}</div>
+    </div>`;
 }
 
 function renderSaldo(){
@@ -780,6 +971,147 @@ function renderSaldo(){
     </div>`).join('') : '<div class="empty-hint">Sin liquidaciones todavía.</div>';
 }
 
+/* ================= Recurrentes ================= */
+function recurrenteRowHTML(r){
+  return `<div class="rec-row">
+    <div class="rec-main">
+      <div class="rec-concepto">${escapeHTML(r.concepto)}</div>
+      <div class="rec-meta">${escapeHTML(r.categoria)} · ${r.persona}${r.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
+    </div>
+    <div class="rec-amount">${r.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(r.importe)}</div>
+    <button type="button" class="btn btn-sm btn-primary" data-add-rec="${r.id}">Añadir</button>
+  </div>`;
+}
+
+function pendingRecurrentesThisMonth(){
+  const mesActual = todayISO().slice(0,7);
+  const loggedIds = new Set(state.movimientos.filter(m => m.mes === mesActual && m.recurrenteId).map(m => m.recurrenteId));
+  return state.recurrentes.filter(r => r.activo !== false && !loggedIds.has(r.id));
+}
+
+function renderRecurrentes(){
+  const card = $('#card-recurrentes');
+  if(!state.recurrentes.length){ card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const pending = pendingRecurrentesThisMonth();
+  $('#recurrentes-list').innerHTML = pending.length
+    ? pending.map(recurrenteRowHTML).join('')
+    : '<div class="empty-hint">Ya tienes todos los recurrentes de este mes registrados ✓</div>';
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-add-rec]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-add-rec');
+  const r = state.recurrentes.find(x => x.id === id);
+  if(!r) return;
+  btn.disabled = true; btn.textContent = '…';
+  try{
+    const fecha = todayISO();
+    await state.db.collection('movimientos').add({
+      fecha, mes: mesOf(fecha), tipo: r.tipo, persona: r.persona, categoria: r.categoria,
+      concepto: r.concepto, compartido: r.compartido, importe: r.importe, obs: r.obs || '',
+      recurrenteId: r.id, creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    showToast('Movimiento añadido ✓');
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo añadir.');
+    btn.disabled = false; btn.textContent = 'Añadir';
+  }
+});
+
+function manageRecurrenteRowHTML(r){
+  return `<div class="rec-row">
+    <div class="rec-main">
+      <div class="rec-concepto">${escapeHTML(r.concepto)}${r.activo === false ? ' <span class="muted">(pausado)</span>' : ''}</div>
+      <div class="rec-meta">${escapeHTML(r.categoria)} · ${r.persona} · ${fmtEUR.format(r.importe)}</div>
+    </div>
+    <button type="button" class="btn btn-sm btn-ghost" data-toggle-rec="${r.id}">${r.activo === false ? 'Reactivar' : 'Pausar'}</button>
+    <button type="button" class="mov-del" data-del-rec="${r.id}" title="Eliminar">🗑</button>
+  </div>`;
+}
+function renderManageRecurrentes(){
+  $('#manage-recurrentes-list').innerHTML = state.recurrentes.length
+    ? state.recurrentes.map(manageRecurrenteRowHTML).join('')
+    : '<div class="empty-hint">Aún no tienes ningún recurrente. Actívalo con el interruptor "Repetir cada mes" al añadir un movimiento.</div>';
+}
+$('#btn-manage-recurrentes').addEventListener('click', () => { renderManageRecurrentes(); $('#modal-recurrentes').classList.add('show'); });
+$('#close-modal-recurrentes').addEventListener('click', () => $('#modal-recurrentes').classList.remove('show'));
+$('#modal-recurrentes').addEventListener('click', (e) => { if(e.target.id === 'modal-recurrentes') $('#modal-recurrentes').classList.remove('show'); });
+
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-toggle-rec]');
+  if(!t) return;
+  const id = t.getAttribute('data-toggle-rec');
+  const r = state.recurrentes.find(x => x.id === id);
+  if(!r) return;
+  t.disabled = true;
+  try{
+    await state.db.doc('recurrentes/'+id).set(Object.assign({}, r, {activo: r.activo === false}));
+    renderManageRecurrentes();
+  }catch(err){ console.error(err); showToast('No se pudo actualizar.'); }
+  finally{ t.disabled = false; }
+});
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('.mov-del[data-del-rec]');
+  if(!del) return;
+  if(del.classList.contains('confirm')){
+    const id = del.getAttribute('data-del-rec');
+    try{ await state.db.doc('recurrentes/'+id).delete(); renderManageRecurrentes(); showToast('Recurrente eliminado'); }
+    catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
+  } else {
+    $all('#manage-recurrentes-list .mov-del.confirm').forEach(x => { x.classList.remove('confirm'); x.textContent = '🗑'; });
+    del.classList.add('confirm'); del.textContent = 'Confirmar';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent='🗑'; } }, 3000);
+  }
+});
+
+/* ================= Presupuestos ================= */
+function renderPresupuestosForm(){
+  $('#presupuestos-form-fields').innerHTML = CATEGORIAS_GASTO.map(c => {
+    const cur = state.presupuestos[c] ? state.presupuestos[c].limite : '';
+    return `<div class="field">
+      <label>${escapeHTML(c)}</label>
+      <div class="amount-input"><input type="number" step="1" min="0" placeholder="Sin límite" data-pres-cat="${escapeHTML(c)}" value="${cur === '' ? '' : cur}"></div>
+    </div>`;
+  }).join('');
+}
+$('#btn-edit-presupuestos').addEventListener('click', () => {
+  renderPresupuestosForm();
+  $('#modal-presupuestos').classList.add('show');
+  $('#modal-presupuestos .modal-sheet').scrollTop = 0;
+});
+$('#close-modal-presupuestos').addEventListener('click', () => $('#modal-presupuestos').classList.remove('show'));
+$('#modal-presupuestos').addEventListener('click', (e) => { if(e.target.id === 'modal-presupuestos') $('#modal-presupuestos').classList.remove('show'); });
+
+$('#form-presupuestos').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const inputs = $all('#presupuestos-form-fields input[data-pres-cat]');
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    const now = new Date().toISOString();
+    await Promise.all(inputs.map(inp => {
+      const categoria = inp.getAttribute('data-pres-cat');
+      const val = parseFloat(inp.value);
+      if(val > 0){
+        return state.db.doc('presupuestos/' + categoria).set({ limite: Math.round(val*100)/100, actualizadoPor: state.user, actualizadoEn: now });
+      } else if(state.presupuestos[categoria]){
+        return state.db.doc('presupuestos/' + categoria).delete();
+      }
+      return Promise.resolve();
+    }));
+    showToast('Presupuestos guardados ✓');
+    $('#modal-presupuestos').classList.remove('show');
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar presupuestos';
+  }
+});
+
 /* ================= Navigation ================= */
 $all('nav.bottom button').forEach(b => b.addEventListener('click', () => {
   state.activeView = b.getAttribute('data-view');
@@ -789,14 +1121,21 @@ $all('nav.bottom button').forEach(b => b.addEventListener('click', () => {
 $('#view-add').classList.add('active');
 
 /* ================= Add-movement form ================= */
+function categoriaOptionsForTipoPersona(tipo, persona){
+  return tipo === 'Gasto' ? CATEGORIAS_GASTO : (CATEGORIAS_INGRESO[persona] || CATEGORIAS_INGRESO['Sergio']);
+}
+function syncCategoriaSelect(selEl, tipo, persona){
+  const options = categoriaOptionsForTipoPersona(tipo, persona);
+  const cur = selEl.value;
+  selEl.innerHTML = options.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  if(options.includes(cur)) selEl.value = cur;
+  return options;
+}
+
 function updateCategoriaOptions(){
   const tipo = $('#seg-tipo button.active').getAttribute('data-val');
   const persona = $('#seg-persona button.active') ? $('#seg-persona button.active').getAttribute('data-val') : state.user;
-  const sel = $('#in-categoria');
-  const options = tipo === 'Gasto' ? CATEGORIAS_GASTO : (CATEGORIAS_INGRESO[persona] || CATEGORIAS_INGRESO['Sergio']);
-  const cur = sel.value;
-  sel.innerHTML = options.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
-  if(options.includes(cur)) sel.value = cur;
+  syncCategoriaSelect($('#in-categoria'), tipo, persona);
   $('#row-compartido').style.display = tipo === 'Gasto' ? 'flex' : 'none';
   if(tipo !== 'Gasto') $('#in-compartido').checked = false;
 }
@@ -810,6 +1149,101 @@ $all('#seg-persona button').forEach(b => b.addEventListener('click', () => {
   updateCategoriaOptions();
 }));
 
+/* ================= Edit-movement modal ================= */
+function updateEditCategoriaOptions(){
+  const tipo = $('#edit-seg-tipo button.active').getAttribute('data-val');
+  const persona = $('#edit-seg-persona button.active') ? $('#edit-seg-persona button.active').getAttribute('data-val') : state.user;
+  syncCategoriaSelect($('#edit-categoria'), tipo, persona);
+  $('#edit-row-compartido').style.display = tipo === 'Gasto' ? 'flex' : 'none';
+  if(tipo !== 'Gasto') $('#edit-compartido').checked = false;
+}
+$all('#edit-seg-tipo button').forEach(b => b.addEventListener('click', () => {
+  $all('#edit-seg-tipo button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  updateEditCategoriaOptions();
+}));
+$all('#edit-seg-persona button').forEach(b => b.addEventListener('click', () => {
+  $all('#edit-seg-persona button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  updateEditCategoriaOptions();
+}));
+
+function openEditModal(id){
+  const m = state.movimientos.find(x => x.id === id);
+  if(!m) return;
+  $('#edit-id').value = m.id;
+  $all('#edit-seg-tipo button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === m.tipo));
+  $all('#edit-seg-persona button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === m.persona));
+  updateEditCategoriaOptions();
+  $('#edit-categoria').value = m.categoria;
+  $('#edit-importe').value = m.importe;
+  $('#edit-fecha').value = m.fecha;
+  $('#edit-concepto').value = m.concepto || '';
+  $('#edit-compartido').checked = !!m.compartido;
+  $('#edit-obs').value = m.obs || '';
+  $('#btn-edit-delete').textContent = 'Eliminar';
+  $('#modal-edit-mov').classList.add('show');
+}
+document.addEventListener('click', (e) => {
+  if(e.target.closest('.mov-del')) return;
+  const row = e.target.closest('.mov-row[data-id]');
+  if(!row) return;
+  if(!row.closest('#movs-list') && !row.closest('#recent-list')) return;
+  openEditModal(row.getAttribute('data-id'));
+});
+$('#close-modal-edit').addEventListener('click', () => $('#modal-edit-mov').classList.remove('show'));
+$('#modal-edit-mov').addEventListener('click', (e) => { if(e.target.id === 'modal-edit-mov') $('#modal-edit-mov').classList.remove('show'); });
+
+$('#form-edit-mov').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = $('#edit-id').value;
+  const original = state.movimientos.find(x => x.id === id);
+  if(!original){ showToast('Este movimiento ya no existe.'); $('#modal-edit-mov').classList.remove('show'); return; }
+  const tipo = $('#edit-seg-tipo button.active').getAttribute('data-val');
+  const persona = $('#edit-seg-persona button.active').getAttribute('data-val');
+  const importe = parseFloat($('#edit-importe').value);
+  const fecha = $('#edit-fecha').value;
+  const categoria = $('#edit-categoria').value;
+  const concepto = $('#edit-concepto').value.trim();
+  const compartido = tipo === 'Gasto' && $('#edit-compartido').checked;
+  const obs = $('#edit-obs').value.trim();
+  if(!(importe > 0) || !fecha || !categoria || !concepto){ showToast('Revisa los campos: falta algo.'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await state.db.doc('movimientos/'+id).set({
+      fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+      creadoPor: original.creadoPor, creadoEn: original.creadoEn,
+      recurrenteId: original.recurrenteId || null,
+      editadoPor: state.user, editadoEn: new Date().toISOString()
+    });
+    showToast('Cambios guardados ✓');
+    $('#modal-edit-mov').classList.remove('show');
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+  }
+});
+
+$('#btn-edit-delete').addEventListener('click', async () => {
+  const id = $('#edit-id').value;
+  if(!id) return;
+  const btn = $('#btn-edit-delete');
+  if(btn.textContent !== 'Confirmar'){
+    btn.textContent = 'Confirmar';
+    setTimeout(() => { if(btn.textContent === 'Confirmar') btn.textContent = 'Eliminar'; }, 3000);
+    return;
+  }
+  btn.disabled = true;
+  try{
+    await state.db.doc('movimientos/'+id).delete();
+    showToast('Movimiento eliminado');
+    $('#modal-edit-mov').classList.remove('show');
+  }catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
+  finally{ btn.disabled = false; btn.textContent = 'Eliminar'; }
+});
+
 $('#form-add').addEventListener('submit', async (e) => {
   e.preventDefault();
   const tipo = $('#seg-tipo button.active').getAttribute('data-val');
@@ -820,19 +1254,29 @@ $('#form-add').addEventListener('submit', async (e) => {
   const concepto = $('#in-concepto').value.trim();
   const compartido = tipo === 'Gasto' && $('#in-compartido').checked;
   const obs = $('#in-obs').value.trim();
+  const repetir = $('#in-recurrente').checked;
 
   if(!(importe > 0) || !fecha || !categoria || !concepto){ showToast('Revisa los campos: falta algo.'); return; }
 
   const btn = e.target.querySelector('button[type=submit]');
   btn.disabled = true; btn.textContent = 'Guardando…';
   try{
+    let recurrenteId = null;
+    if(repetir){
+      const rec = await state.db.collection('recurrentes').add({
+        tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+        activo: true, creadoPor: state.user, creadoEn: new Date().toISOString()
+      });
+      recurrenteId = rec.id;
+    }
     await state.db.collection('movimientos').add({
       fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
-      creadoPor: state.user, creadoEn: new Date().toISOString()
+      recurrenteId, creadoPor: state.user, creadoEn: new Date().toISOString()
     });
-    showToast('Movimiento guardado ✓');
+    showToast(repetir ? 'Guardado y marcado como recurrente ✓' : 'Movimiento guardado ✓');
     $('#in-importe').value = ''; $('#in-concepto').value = ''; $('#in-obs').value = '';
     $('#in-compartido').checked = false;
+    $('#in-recurrente').checked = false;
     $('#in-fecha').value = todayISO();
     $('#in-importe').focus();
   }catch(err){
