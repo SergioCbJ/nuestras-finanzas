@@ -198,7 +198,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .ticket-chip-pdf{display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--surface);}
 .ticket-chip-name{flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ticket-chip-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex:none;padding:4px;}
-.ticket-view-img{width:100%;border-radius:12px;display:block;}
+.ticket-view-img{width:100%;border-radius:12px;display:block;margin-bottom:12px;}
 
 /* ---------- Recurring rows ---------- */
 .rec-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--grid);}
@@ -1103,13 +1103,17 @@ function downloadDataURL(dataURL, filename){
 
 function openTicketViewer(ticket){
   const body = $('#ticket-view-body');
-  if(isImageTicket(ticket)){
-    body.innerHTML = `<img class="ticket-view-img" src="${ticket.data}" alt="Ticket">`;
-  }else{
-    body.innerHTML = `<div class="empty-hint" style="padding:32px 8px;">📄 ${escapeHTML(ticket.nombre || 'ticket.pdf')}</div>
-      <button type="button" class="btn btn-primary" id="btn-ticket-download">⬇ Descargar PDF</button>`;
-    $('#btn-ticket-download').addEventListener('click', () => downloadDataURL(ticket.data, ticket.nombre || 'ticket.pdf'));
-  }
+  const isImg = isImageTicket(ticket);
+  const nombreMostrado = ticket.nombre || (isImg ? 'ticket.jpg' : 'ticket.pdf');
+  // Las fotos se re-comprimen a JPEG al adjuntarlas, así que el nombre de
+  // descarga lleva extensión .jpg aunque el archivo original fuera .png/.heic/etc.
+  // -- si no, el archivo descargado tendría una extensión que no coincide con su contenido real.
+  const nombreDescarga = isImg ? nombreMostrado.replace(/\.[^.]+$/, '') + '.jpg' : nombreMostrado;
+  const preview = isImg
+    ? `<img class="ticket-view-img" src="${ticket.data}" alt="Ticket">`
+    : `<div class="empty-hint" style="padding:32px 8px;">📄 ${escapeHTML(nombreMostrado)}</div>`;
+  body.innerHTML = `${preview}<button type="button" class="btn btn-primary" id="btn-ticket-download">⬇ Descargar${isImg ? ' foto' : ' PDF'}</button>`;
+  $('#btn-ticket-download').addEventListener('click', () => downloadDataURL(ticket.data, nombreDescarga));
   $('#modal-ticket-view').classList.add('show');
 }
 
