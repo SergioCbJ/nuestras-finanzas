@@ -516,8 +516,8 @@ nav.bottom button.active{color:var(--c-ahorro);}
    acceso por sí solas, el acceso real lo controlan las reglas de Firestore (ver guía). */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import {
-  initializeFirestore, persistentLocalCache, collection, doc, getDoc, setDoc, addDoc, deleteDoc,
-  onSnapshot, runTransaction
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc,
+  setDoc, addDoc, deleteDoc, onSnapshot, runTransaction
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -536,8 +536,11 @@ try{
   const fbApp = initializeApp(firebaseConfig);
   // localCache activa la persistencia offline: los datos ya vistos se leen del
   // móvil sin conexión, y lo que añadas/edites/borres sin cobertura se guarda
-  // en cola y se sincroniza solo en cuanto vuelve la señal.
-  fs = initializeFirestore(fbApp, { localCache: persistentLocalCache() });
+  // en cola y se sincroniza solo en cuanto vuelve la señal. tabManager:
+  // persistentMultipleTabManager() evita que, si la app queda abierta en dos
+  // pestañas/ventanas a la vez (del mismo navegador), una de ellas se quede
+  // sin poder leer ni escribir datos.
+  fs = initializeFirestore(fbApp, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
 }catch(e){ console.error('Firebase init error', e); fs = null; }
 
 /* PWA: registra el service worker (cascarón de la app disponible sin conexión). */
