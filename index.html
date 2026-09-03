@@ -144,6 +144,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .cat-chip-picker{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
 .cat-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:var(--plane);color:var(--ink-soft);font-size:12.5px;font-weight:600;cursor:pointer;}
 .cat-chip.active{color:#fff;border-color:transparent;}
+#movs-filter-conticket.active,#movs-filter-sinticket.active{background:var(--blue);color:#fff;border-color:transparent;}
 .catchart-hit{cursor:pointer;}
 .catchart-tip-row{display:flex;align-items:center;gap:6px;margin-top:4px;}
 .catchart-tip-row i{width:8px;height:8px;border-radius:2px;flex:none;display:inline-block;}
@@ -199,6 +200,26 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 
 .empty-hint{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 8px;}
 
+/* ---------- Curiosidades del mes ---------- */
+.curio-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;font-size:13.5px;line-height:1.4;}
+.curio-row+.curio-row{border-top:1px solid var(--grid);}
+.curio-ic{flex:none;font-size:17px;width:22px;text-align:center;line-height:1.3;}
+.curio-text{flex:1;min-width:0;}
+.curio-muted{color:var(--muted);font-size:12.5px;}
+
+/* ---------- Comparativa interanual ---------- */
+.comp-caption{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.comp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--grid);}
+.comp-row:first-of-type{border-top:none;}
+.comp-label{font-size:13.5px;font-weight:600;}
+.comp-vals{display:flex;align-items:baseline;gap:10px;flex:none;}
+.comp-actual{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+.comp-delta{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+
+/* ---------- Previsión de gasto del mes ---------- */
+.prev-total{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--grid);}
+.prev-total strong{color:var(--ink);font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;}
+
 /* ---------- Ticket (foto/PDF) ---------- */
 .ticket-chip{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--plane);}
 .ticket-chip[hidden]{display:none;}
@@ -242,8 +263,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
 /* ---------- Toast ---------- */
 #toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,12px);background:var(--ink);color:var(--surface);
   padding:10px 18px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:30;
-  max-width:88%;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.25);}
-#toast.show{opacity:1;transform:translate(-50%,0);}
+  max-width:88%;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.25);
+  display:inline-flex;align-items:center;gap:10px;}
+#toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+.toast-action{background:none;border:1px solid var(--surface);color:var(--surface);border-radius:999px;
+  padding:4px 10px;font-size:12.5px;font-weight:700;cursor:pointer;flex:none;}
 
 /* ---------- Misc ---------- */
 .row-between{display:flex;align-items:center;justify-content:space-between;}
@@ -388,6 +412,10 @@ nav.bottom button.active{color:var(--c-ahorro);}
               </select>
             </div>
           </div>
+          <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="cat-chip" id="movs-filter-conticket">🧾 Con ticket</button>
+            <button type="button" class="cat-chip" id="movs-filter-sinticket">🧾 Sin ticket</button>
+          </div>
           <div id="movs-list"></div>
         </div>
       </section>
@@ -396,7 +424,10 @@ nav.bottom button.active{color:var(--c-ahorro);}
       <section class="view" id="view-resumen">
         <div class="row-between" style="margin-bottom:12px;">
           <div class="section-title" style="margin-bottom:0;">Resumen</div>
-          <button type="button" class="link-btn" id="btn-export">⬇ Exportar</button>
+          <div style="display:flex;gap:14px;">
+            <button type="button" class="link-btn" id="btn-export">⬇ Exportar</button>
+            <button type="button" class="link-btn" id="btn-backup">🗄 Backup</button>
+          </div>
         </div>
 
         <div class="kpi-grid">
@@ -438,6 +469,21 @@ nav.bottom button.active{color:var(--c-ahorro);}
         </div>
 
         <div class="card">
+          <div class="section-title">Previsión de gasto del mes</div>
+          <div id="prevision-gasto"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Curiosidades del mes</div>
+          <div id="curiosidades-mes"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Comparativa interanual</div>
+          <div id="comparativa-interanual"></div>
+        </div>
+
+        <div class="card">
           <div class="section-title">Gasto por categoría</div>
           <div id="cat-breakdown"></div>
         </div>
@@ -446,6 +492,12 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div class="section-title">Gasto por categoría — evolución</div>
           <div class="cat-chip-picker" id="cat-chart-picker"></div>
           <div id="cat-chart"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Ingresos por categoría — evolución</div>
+          <div class="cat-chip-picker" id="ing-chart-picker"></div>
+          <div id="ing-chart"></div>
         </div>
 
         <div class="card">
@@ -728,6 +780,13 @@ const mesLabelShort = (mesStr) => { const [y,m] = mesStr.split('-').map(Number);
   return new Date(y, m-1, 1).toLocaleDateString('es-ES', {month:'short'}).replace('.',''); };
 const todayISO = () => new Date().toISOString().slice(0,10);
 const mesOf = (fechaISO) => fechaISO.slice(0,7);
+// Suma (o resta, con n negativo) n meses a un "YYYY-MM"; usa Date para que el
+// cambio de año se resuelva solo (p.ej. mesShift('2026-01', -1) -> '2025-12').
+const mesShift = (mesStr, n) => {
+  const [y,m] = mesStr.split('-').map(Number);
+  const d = new Date(y, m-1+n, 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+};
 const otherUser = (u) => u === 'Sergio' ? 'Carmen' : 'Sergio';
 
 const state = {
@@ -738,7 +797,7 @@ const state = {
   activeView: 'add',
   resumenMes: null,
   movsMes: null,
-  movsFilters: { q: '', categoria: 'todas', persona: 'todos' },
+  movsFilters: { q: '', categoria: 'todas', persona: 'todos', ticket: 'todos' },
   recurrentes: [],
   presupuestos: {},
   metas: [],
@@ -747,9 +806,26 @@ const state = {
 function $(sel){ return document.querySelector(sel); }
 function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
 
-function showToast(msg){
-  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(showToast._t); showToast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+/* opts opcional: {actionLabel, onAction, duration} para un aviso con botón de
+   acción (p.ej. "Deshacer"). Sin opts se comporta igual que siempre. */
+function showToast(msg, opts){
+  const t = $('#toast');
+  const actionLabel = opts && opts.actionLabel;
+  const onAction = opts && opts.onAction;
+  const duration = (opts && opts.duration) || (actionLabel ? 5000 : 2200);
+  t.innerHTML = '<span class="toast-msg"></span>' + (actionLabel ? '<button type="button" class="toast-action"></button>' : '');
+  t.querySelector('.toast-msg').textContent = msg;
+  if(actionLabel){
+    const btn = t.querySelector('.toast-action');
+    btn.textContent = actionLabel;
+    btn.addEventListener('click', () => {
+      clearTimeout(showToast._t);
+      t.classList.remove('show');
+      if(onAction) onAction();
+    });
+  }
+  t.classList.add('show');
+  clearTimeout(showToast._t); showToast._t = setTimeout(()=>t.classList.remove('show'), duration);
 }
 
 /* ================= Bootstrapping ================= */
@@ -983,6 +1059,87 @@ function catBreakdown(mes){
   return sorted;
 }
 
+/* Compara un mes con el mismo mes del año anterior: ingresos, gastos y ahorro
+   conjunto. Devuelve null si no hay datos de hace un año para comparar. */
+function comparativaInteranual(mes, timeline){
+  const mesAnyoPasado = mesShift(mes, -12);
+  const rowActual = timeline.find(r => r.mes === mes);
+  const rowAnterior = timeline.find(r => r.mes === mesAnyoPasado);
+  if(!rowActual || !rowAnterior) return null;
+  return {
+    mes, mesAnyoPasado,
+    filas: [
+      {label:'Ingresos', actual: rowActual.ingS+rowActual.ingC, anterior: rowAnterior.ingS+rowAnterior.ingC, favorableSiSube: true},
+      {label:'Gastos', actual: rowActual.gasS+rowActual.gasC, anterior: rowAnterior.gasS+rowAnterior.gasC, favorableSiSube: false},
+      {label:'Ahorro conjunto', actual: rowActual.ahorroConjunto, anterior: rowAnterior.ahorroConjunto, favorableSiSube: true},
+    ]
+  };
+}
+
+/* Un par de datos automáticos del mes: el gasto individual más alto, y la
+   categoría que más ha subido/bajado respecto al mes anterior. */
+function curiosidadesMes(mes){
+  const gastosDelMes = state.movimientos.filter(m => m.mes===mes && m.tipo==='Gasto');
+  const mayorGasto = gastosDelMes.length ? gastosDelMes.reduce((max,m) => m.importe > max.importe ? m : max) : null;
+
+  const mesAnterior = mesShift(mes, -1);
+  const hayMesAnterior = allMonths().includes(mesAnterior);
+  let subeMas = null, bajaMas = null;
+  if(hayMesAnterior){
+    const actualMap = Object.fromEntries(catBreakdown(mes));
+    const anteriorMap = Object.fromEntries(catBreakdown(mesAnterior));
+    const deltas = CATEGORIAS_GASTO
+      .map(cat => ({cat, delta: (actualMap[cat]||0) - (anteriorMap[cat]||0)}))
+      .filter(d => Math.abs(d.delta) > 0.004); // ignora ruido de redondeo
+    subeMas = deltas.filter(d => d.delta > 0).sort((a,b) => b.delta - a.delta)[0] || null;
+    bajaMas = deltas.filter(d => d.delta < 0).sort((a,b) => a.delta - b.delta)[0] || null;
+  }
+  return {mes, mesAnterior, hayMesAnterior, mayorGasto, subeMas, bajaMas};
+}
+
+/* Previsión de gasto del mes en curso, categoría a categoría, a partir del histórico:
+   para cada categoría miramos los últimos PREVISION_MESES_HISTORICO meses (sin contar
+   el actual) y calculamos (a) la media de los meses en los que SÍ hubo gasto de esa
+   categoría, y (b) cada cuántos meses suele aparecer (1 = mensual, como la luz; 3 =
+   trimestral, como el agua...). Con eso decidimos si a este mes "le toca" esa
+   categoría: si ya tiene gasto registrado este mes, o si han pasado ya tantos meses
+   como su intervalo habitual desde la última vez que apareció. Si le toca, la
+   previsión es la media (o el gasto real si ya es mayor que la media); si no le toca
+   todavía (p.ej. el agua el mes después de haberse pagado), la previsión es 0. */
+const PREVISION_MESES_HISTORICO = 12;
+
+function previsionGastoMes(mes){
+  const mesesAnteriores = [];
+  for(let i = PREVISION_MESES_HISTORICO; i >= 1; i--) mesesAnteriores.push(mesShift(mes, -i));
+  const historicoPorMes = mesesAnteriores.map(m => Object.fromEntries(catBreakdown(m)));
+  const actualMap = Object.fromEntries(catBreakdown(mes));
+
+  const categorias = CATEGORIAS_GASTO.map(cat => {
+    const valores = historicoPorMes.map(m => m[cat] || 0);
+    const actual = actualMap[cat] || 0;
+    const apariciones = valores.filter(v => v > 0.004);
+    if(!apariciones.length){
+      // Sin histórico suficiente para estimar esta categoría: la previsión es solo lo ya gastado.
+      return {categoria: cat, actual, previsto: actual, promedio: 0, intervaloMeses: null, due: actual > 0.004, tieneHistorico: false};
+    }
+    const promedio = apariciones.reduce((s,v) => s+v, 0) / apariciones.length;
+    const intervaloMeses = Math.max(1, Math.round(valores.length / apariciones.length));
+    let mesesDesdeUltima = valores.length;
+    for(let i = valores.length - 1; i >= 0; i--){
+      if(valores[i] > 0.004){ mesesDesdeUltima = valores.length - i; break; }
+    }
+    const due = actual > 0.004 || mesesDesdeUltima >= intervaloMeses;
+    const previsto = due ? Math.max(actual, promedio) : actual;
+    return {categoria: cat, actual, previsto, promedio, intervaloMeses, due, tieneHistorico: true};
+  })
+    .filter(c => c.previsto > 0.004 || c.actual > 0.004)
+    .sort((a,b) => b.previsto - a.previsto);
+
+  const totalActual = categorias.reduce((s,c) => s+c.actual, 0);
+  const totalPrevisto = categorias.reduce((s,c) => s+c.previsto, 0);
+  return {mes, categorias, totalActual, totalPrevisto};
+}
+
 /* ================= Rendering ================= */
 function renderAll(){
   if(!state.user) return;
@@ -1159,17 +1316,23 @@ function renderRecent(){
 
 function renderMovs(){
   const mes = state.movsMes;
-  const {q, categoria, persona} = state.movsFilters;
+  const {q, categoria, persona, ticket} = state.movsFilters;
   const qLower = q.trim().toLowerCase();
   const list = state.movimientos
     .filter(m => mes === 'todos' || m.mes === mes)
     .filter(m => categoria === 'todas' || m.categoria === categoria)
     .filter(m => persona === 'todos' || m.persona === persona)
+    .filter(m => ticket === 'todos' || (ticket === 'con' ? !!m.ticketData : !m.ticketData))
     .filter(m => !qLower || (m.concepto||'').toLowerCase().includes(qLower) || (m.obs||'').toLowerCase().includes(qLower))
     .sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
+  $('#movs-filter-conticket').classList.toggle('active', ticket === 'con');
+  $('#movs-filter-sinticket').classList.toggle('active', ticket === 'sin');
+  const emptyMsg = ticket === 'sin' ? 'No hay movimientos sin ticket que coincidan — ¡todo tiene su foto o PDF! 🎉'
+    : ticket === 'con' ? 'No hay movimientos con ticket que coincidan todavía.'
+    : 'No hay movimientos que coincidan.';
   $('#movs-list').innerHTML = list.length
     ? list.map(m => movRowHTML(m, true)).join('')
-    : '<div class="empty-hint">No hay movimientos que coincidan.</div>';
+    : `<div class="empty-hint">${emptyMsg}</div>`;
 }
 
 function allCategoriasForFilter(){
@@ -1189,6 +1352,8 @@ populateMovsFilters();
 $('#movs-search').addEventListener('input', e => { state.movsFilters.q = e.target.value; renderMovs(); });
 $('#movs-cat-filter').addEventListener('change', e => { state.movsFilters.categoria = e.target.value; renderMovs(); });
 $('#movs-persona-filter').addEventListener('change', e => { state.movsFilters.persona = e.target.value; renderMovs(); });
+$('#movs-filter-conticket').addEventListener('click', () => { state.movsFilters.ticket = state.movsFilters.ticket === 'con' ? 'todos' : 'con'; renderMovs(); });
+$('#movs-filter-sinticket').addEventListener('click', () => { state.movsFilters.ticket = state.movsFilters.ticket === 'sin' ? 'todos' : 'sin'; renderMovs(); });
 
 function renderResumen(){
   const timeline = fullTimeline();
@@ -1228,6 +1393,10 @@ function renderResumen(){
     `<tr><td>Compartido</td><td class="col-ing">—</td><td class="col-gas">${fmtEUR.format(row.gasCompS+row.gasCompC)}</td><td class="col-ahorro">—</td></tr>` +
     line('Conjunto', row.ingS+row.ingC, row.gasS+row.gasC, row.ahorroConjunto, true);
 
+  $('#prevision-gasto').innerHTML = previsionHTML(previsionGastoMes(state.resumenMes));
+  $('#curiosidades-mes').innerHTML = curiosidadesHTML(curiosidadesMes(state.resumenMes));
+  $('#comparativa-interanual').innerHTML = comparativaHTML(comparativaInteranual(state.resumenMes, timeline));
+
   const cats = catBreakdown(state.resumenMes).filter(([,v]) => v !== 0 || true);
   const withVals = cats.filter(([,v]) => v > 0);
   const top = withVals.slice(0, CAT_TOP_N);
@@ -1245,6 +1414,7 @@ function renderResumen(){
   $('#cat-breakdown').innerHTML = html || '<div class="empty-hint">Sin gastos este mes.</div>';
 
   renderCatChart(timeline);
+  renderIngChart(timeline);
 
   const gastoMap = Object.fromEntries(cats);
   const presEntries = Object.entries(state.presupuestos).filter(([,v]) => v && v.limite > 0);
@@ -1275,6 +1445,60 @@ function presupuestoRowHTML(categoria, limite, gastado){
       <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,pctClamped*100)}%;background:${color}"></div></div>
       <div class="cat-value" style="width:auto;min-width:104px;">${fmtEUR0.format(gastado)} / ${fmtEUR0.format(limite)}</div>
     </div>`;
+}
+
+function curiosidadesHTML(cur){
+  const items = [];
+  if(cur.mayorGasto){
+    const m = cur.mayorGasto;
+    items.push(`<div class="curio-row"><div class="curio-ic">${catIcon(m.categoria)}</div><div class="curio-text"><strong>Tu mayor gasto este mes:</strong> ${escapeHTML(m.concepto || m.categoria)} — ${fmtEUR.format(m.importe)}</div></div>`);
+  }
+  if(cur.subeMas){
+    items.push(`<div class="curio-row"><div class="curio-ic">📈</div><div class="curio-text"><strong>Lo que más ha subido:</strong> ${catIcon(cur.subeMas.cat)} ${escapeHTML(cur.subeMas.cat)}, +${fmtEUR.format(cur.subeMas.delta)} respecto al mes anterior</div></div>`);
+  }
+  if(cur.bajaMas){
+    items.push(`<div class="curio-row"><div class="curio-ic">📉</div><div class="curio-text"><strong>Lo que más ha bajado:</strong> ${catIcon(cur.bajaMas.cat)} ${escapeHTML(cur.bajaMas.cat)}, ${fmtEUR.format(cur.bajaMas.delta)} respecto al mes anterior</div></div>`);
+  }
+  if(!items.length) return '<div class="empty-hint">Todavía no hay suficientes datos este mes para sacar curiosidades.</div>';
+  if(!cur.hayMesAnterior) items.push('<div class="curio-row curio-muted">Aún no hay datos del mes anterior para comparar categorías.</div>');
+  return items.join('');
+}
+
+function comparativaHTML(comp){
+  if(!comp) return '<div class="empty-hint">Aún no hay datos del mismo mes hace un año para comparar.</div>';
+  const rows = comp.filas.map(f => {
+    const delta = f.actual - f.anterior;
+    const favorable = f.favorableSiSube ? delta >= 0 : delta <= 0;
+    const color = delta === 0 ? 'var(--muted)' : (favorable ? 'var(--c-ingreso)' : 'var(--c-alerta)');
+    const arrow = delta > 0 ? '▲' : (delta < 0 ? '▼' : '—');
+    const sign = delta > 0 ? '+' : '';
+    return `<div class="comp-row">
+      <div class="comp-label">${escapeHTML(f.label)}</div>
+      <div class="comp-vals">
+        <span class="comp-actual">${fmtEUR0.format(f.actual)}</span>
+        <span class="comp-delta" style="color:${color}">${arrow} ${sign}${fmtEUR0.format(delta)}</span>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="comp-caption">${escapeHTML(mesLabel(comp.mes))} vs ${escapeHTML(mesLabel(comp.mesAnyoPasado))}</div>${rows}`;
+}
+
+function previsionRowHTML(c){
+  const pct = c.previsto > 0.004 ? Math.min(1, c.actual / c.previsto) : (c.actual > 0.004 ? 1 : 0);
+  return `<div class="cat-row">
+      <div class="cat-name" style="flex:0 0 42%;">${catIcon(c.categoria)} ${escapeHTML(c.categoria)}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,pct*100)}%;background:var(--blue)"></div></div>
+      <div class="cat-value" style="width:auto;min-width:104px;">${fmtEUR0.format(c.actual)} / ${fmtEUR0.format(c.previsto)}</div>
+    </div>`;
+}
+
+function previsionHTML(prev){
+  if(!prev.categorias.length) return '<div class="empty-hint">Todavía no hay histórico suficiente para estimar el gasto de este mes.</div>';
+  const rows = prev.categorias.map(previsionRowHTML).join('');
+  return `<div class="prev-total">
+      <div>Gastado hasta ahora: <strong>${fmtEUR.format(prev.totalActual)}</strong></div>
+      <div>Previsión a fin de mes: <strong>${fmtEUR.format(prev.totalPrevisto)}</strong></div>
+    </div>${rows}`;
 }
 
 /* ================= Mini gráficos (SVG a mano, sin librerías) ================= */
@@ -1343,7 +1567,11 @@ function monthLabelsHTML(rows){
   }).join('');
 }
 
-/* ================= Gasto por categoría — evolución (líneas) ================= */
+/* ================= Motor genérico: evolución por categoría (líneas) =================
+   Lo comparten "Gasto por categoría" e "Ingresos por categoría": mismo cálculo
+   de color/trazo, mismo SVG. Cada uno lo usa con su propio universo de
+   categorías, su función de desglose mensual y sus propios elementos del DOM
+   (para que un manejador de clic nunca capture los chips/columnas del otro). */
 const CAT_CHART_MAX = 5;
 // Solo hay CAT_PALETTE.length colores fijos, pero hay más categorías que eso, así
 // que el color por categoría (fijo, no por rango) inevitablemente se repite cada
@@ -1352,53 +1580,41 @@ const CAT_CHART_MAX = 5;
 // la vez -- se distinguen aunque acaben con el mismo color en la misma selección.
 const CAT_DASH_PATTERNS = ['', '6,3', '2,3', '9,3,2,3'];
 
-function catColor(categoria){
-  const idx = CATEGORIAS_GASTO.indexOf(categoria);
+function colorForCat(universo, categoria){
+  const idx = universo.indexOf(categoria);
   return `var(--${CAT_PALETTE[idx % CAT_PALETTE.length] || 'neutral'})`;
 }
 
-function catDash(categoria){
-  const idx = CATEGORIAS_GASTO.indexOf(categoria);
+function dashForCat(universo, categoria){
+  const idx = universo.indexOf(categoria);
   const vuelta = Math.floor(idx / CAT_PALETTE.length) % CAT_DASH_PATTERNS.length;
   return CAT_DASH_PATTERNS[vuelta];
 }
 
-// Top categorías por gasto total en los últimos 12 meses -- un punto de
-// partida razonable la primera vez que se abre (nada seleccionado sería un
-// gráfico vacío y poco útil).
-function computeDefaultCatChartSel(timeline){
+// Top categorías por total en los últimos 12 meses -- un punto de partida
+// razonable la primera vez que se abre (nada seleccionado sería un gráfico
+// vacío y poco útil).
+function defaultChartSel(universo, breakdownFn, timeline){
   const recent = timeline.slice(-12);
   const totals = {};
-  recent.forEach(r => { catBreakdown(r.mes).forEach(([cat,val]) => { totals[cat] = (totals[cat]||0) + val; }); });
+  recent.forEach(r => { breakdownFn(r.mes).forEach(([cat,val]) => { totals[cat] = (totals[cat]||0) + val; }); });
   return Object.entries(totals).sort((a,b) => b[1]-a[1]).filter(([,v]) => v > 0).slice(0,3).map(([cat]) => cat);
 }
 
-function initCatChartSel(timeline){
-  if(state.catChartSel) return;
-  let stored = null;
-  try{ stored = JSON.parse(safeLocalGet('finanzas_cat_chart_sel') || 'null'); }catch(e){ stored = null; }
-  if(Array.isArray(stored) && stored.length){
-    state.catChartSel = stored.filter(c => CATEGORIAS_GASTO.includes(c)).slice(0, CAT_CHART_MAX);
-  }
-  if(!state.catChartSel || !state.catChartSel.length){
-    state.catChartSel = computeDefaultCatChartSel(timeline);
-  }
-}
-
-function catChartPickerHTML(selected){
-  return CATEGORIAS_GASTO.map(cat => {
+function chartPickerHTML(universo, selected, chipAttr){
+  return universo.map(cat => {
     const active = selected.includes(cat);
-    const style = active ? `background:${catColor(cat)};` : '';
-    return `<button type="button" class="cat-chip${active?' active':''}" style="${style}" data-cat-chip="${escapeHTML(cat)}">${catIcon(cat)} ${escapeHTML(cat)}</button>`;
+    const style = active ? `background:${colorForCat(universo, cat)};` : '';
+    return `<button type="button" class="cat-chip${active?' active':''}" style="${style}" ${chipAttr}="${escapeHTML(cat)}">${catIcon(cat)} ${escapeHTML(cat)}</button>`;
   }).join('');
 }
 
-function catChartHTML(selCats, timeline){
+function categoryLineChartHTML(universo, breakdownFn, selCats, timeline, hitClass, tooltipId){
   const rows = timeline.slice(-12);
   if(rows.length < 2) return '<div class="empty-hint">Todavía no hay suficientes meses para ver una evolución.</div>';
   if(!selCats.length) return '<div class="empty-hint">Selecciona una o más categorías para ver su evolución.</div>';
-  const perMonth = rows.map(r => Object.fromEntries(catBreakdown(r.mes)));
-  const series = selCats.map(cat => ({ cat, color: catColor(cat), dash: catDash(cat), values: perMonth.map(m => m[cat] || 0) }));
+  const perMonth = rows.map(r => Object.fromEntries(breakdownFn(r.mes)));
+  const series = selCats.map(cat => ({ cat, color: colorForCat(universo, cat), dash: dashForCat(universo, cat), values: perMonth.map(m => m[cat] || 0) }));
   const W = 300, H = 108;
   const maxVal = Math.max(1, ...series.flatMap(s => s.values));
   const stepX = rows.length > 1 ? W / (rows.length - 1) : W;
@@ -1414,12 +1630,38 @@ function catChartHTML(selCats, timeline){
     // Recorta también el borde derecho -- si no, el hueco de la última columna
     // se sale del viewBox y su punto de toque queda justo en el filo (poco fiable).
     const x = Math.max(0, Math.min(i*stepX - hitW/2, W - hitW));
-    return `<rect x="${x.toFixed(1)}" y="0" width="${hitW.toFixed(1)}" height="${H}" fill="transparent" class="catchart-hit" data-catchart-mes="${r.mes}"/>`;
+    return `<rect x="${x.toFixed(1)}" y="0" width="${hitW.toFixed(1)}" height="${H}" fill="transparent" class="${hitClass}" data-mes="${r.mes}"/>`;
   }).join('');
   return `<svg class="evol-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svgLines}${svgHits}</svg>
     <div class="evol-labels">${monthLabelsHTML(rows)}</div>
-    <div class="evol-tooltip" id="catchart-tooltip"></div>`;
+    <div class="evol-tooltip" id="${tooltipId}"></div>`;
 }
+
+function chartTooltipHTML(universo, breakdownFn, selCats, mes){
+  const map = Object.fromEntries(breakdownFn(mes));
+  const rows = selCats.map(cat => `<div class="catchart-tip-row"><i style="background:${colorForCat(universo, cat)}"></i>${catIcon(cat)} ${escapeHTML(cat)}: ${escapeHTML(fmtEUR.format(map[cat]||0))}</div>`).join('');
+  return `<strong>${escapeHTML(mesLabel(mes))}</strong>${rows}`;
+}
+
+/* ---------- Gasto por categoría (sobre el motor genérico de arriba) ---------- */
+function catColor(categoria){ return colorForCat(CATEGORIAS_GASTO, categoria); }
+function catDash(categoria){ return dashForCat(CATEGORIAS_GASTO, categoria); }
+function computeDefaultCatChartSel(timeline){ return defaultChartSel(CATEGORIAS_GASTO, catBreakdown, timeline); }
+
+function initCatChartSel(timeline){
+  if(state.catChartSel) return;
+  let stored = null;
+  try{ stored = JSON.parse(safeLocalGet('finanzas_cat_chart_sel') || 'null'); }catch(e){ stored = null; }
+  if(Array.isArray(stored) && stored.length){
+    state.catChartSel = stored.filter(c => CATEGORIAS_GASTO.includes(c)).slice(0, CAT_CHART_MAX);
+  }
+  if(!state.catChartSel || !state.catChartSel.length){
+    state.catChartSel = computeDefaultCatChartSel(timeline);
+  }
+}
+
+function catChartPickerHTML(selected){ return chartPickerHTML(CATEGORIAS_GASTO, selected, 'data-cat-chip'); }
+function catChartHTML(selCats, timeline){ return categoryLineChartHTML(CATEGORIAS_GASTO, catBreakdown, selCats, timeline, 'catchart-hit', 'catchart-tooltip'); }
 
 function renderCatChart(timeline){
   timeline = timeline || fullTimeline();
@@ -1448,10 +1690,73 @@ document.addEventListener('click', (e) => {
   if(!hit) return;
   const tip = $('#catchart-tooltip');
   if(!tip) return;
-  const mes = hit.getAttribute('data-catchart-mes');
-  const map = Object.fromEntries(catBreakdown(mes));
-  const rows = state.catChartSel.map(cat => `<div class="catchart-tip-row"><i style="background:${catColor(cat)}"></i>${catIcon(cat)} ${escapeHTML(cat)}: ${escapeHTML(fmtEUR.format(map[cat]||0))}</div>`).join('');
-  tip.innerHTML = `<strong>${escapeHTML(mesLabel(mes))}</strong>${rows}`;
+  tip.innerHTML = chartTooltipHTML(CATEGORIAS_GASTO, catBreakdown, state.catChartSel, hit.getAttribute('data-mes'));
+  tip.classList.add('show');
+});
+
+/* ---------- Ingresos por categoría (mismo motor; une las categorías propias
+   de Sergio y de Carmen, ya que el gráfico compara al conjunto) ---------- */
+function allCategoriasIngreso(){
+  const set = new Set();
+  Object.values(CATEGORIAS_INGRESO).forEach(arr => arr.forEach(c => set.add(c)));
+  return Array.from(set);
+}
+
+function ingBreakdown(mes){
+  const totals = {};
+  allCategoriasIngreso().forEach(c => totals[c] = 0);
+  state.movimientos.forEach(m => { if(m.mes===mes && m.tipo==='Ingreso'){ totals[m.categoria] = (totals[m.categoria]||0) + m.importe; } });
+  return Object.entries(totals).sort((a,b) => b[1]-a[1]);
+}
+
+function ingColor(categoria){ return colorForCat(allCategoriasIngreso(), categoria); }
+function ingDash(categoria){ return dashForCat(allCategoriasIngreso(), categoria); }
+function computeDefaultIngChartSel(timeline){ return defaultChartSel(allCategoriasIngreso(), ingBreakdown, timeline); }
+
+function initIngChartSel(timeline){
+  if(state.ingChartSel) return;
+  let stored = null;
+  try{ stored = JSON.parse(safeLocalGet('finanzas_ing_chart_sel') || 'null'); }catch(e){ stored = null; }
+  const universo = allCategoriasIngreso();
+  if(Array.isArray(stored) && stored.length){
+    state.ingChartSel = stored.filter(c => universo.includes(c)).slice(0, CAT_CHART_MAX);
+  }
+  if(!state.ingChartSel || !state.ingChartSel.length){
+    state.ingChartSel = computeDefaultIngChartSel(timeline);
+  }
+}
+
+function ingChartPickerHTML(selected){ return chartPickerHTML(allCategoriasIngreso(), selected, 'data-ing-chip'); }
+function ingChartHTML(selCats, timeline){ return categoryLineChartHTML(allCategoriasIngreso(), ingBreakdown, selCats, timeline, 'ingchart-hit', 'ingchart-tooltip'); }
+
+function renderIngChart(timeline){
+  timeline = timeline || fullTimeline();
+  initIngChartSel(timeline);
+  $('#ing-chart-picker').innerHTML = ingChartPickerHTML(state.ingChartSel);
+  $('#ing-chart').innerHTML = ingChartHTML(state.ingChartSel, timeline);
+}
+
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-ing-chip]');
+  if(!chip) return;
+  const cat = chip.getAttribute('data-ing-chip');
+  const i = state.ingChartSel.indexOf(cat);
+  if(i >= 0){
+    state.ingChartSel.splice(i, 1);
+  }else{
+    if(state.ingChartSel.length >= CAT_CHART_MAX){ showToast(`Puedes comparar hasta ${CAT_CHART_MAX} categorías a la vez.`); return; }
+    state.ingChartSel.push(cat);
+  }
+  safeLocalSet('finanzas_ing_chart_sel', JSON.stringify(state.ingChartSel));
+  renderIngChart();
+});
+
+document.addEventListener('click', (e) => {
+  const hit = e.target.closest('.ingchart-hit');
+  if(!hit) return;
+  const tip = $('#ingchart-tooltip');
+  if(!tip) return;
+  tip.innerHTML = chartTooltipHTML(allCategoriasIngreso(), ingBreakdown, state.ingChartSel, hit.getAttribute('data-mes'));
   tip.classList.add('show');
 });
 
@@ -1652,12 +1957,20 @@ $('#form-presupuestos').addEventListener('submit', async (e) => {
 });
 
 /* ================= Navigation ================= */
-$all('nav.bottom button').forEach(b => b.addEventListener('click', () => {
-  state.activeView = b.getAttribute('data-view');
-  $all('nav.bottom button').forEach(x => x.classList.toggle('active', x===b));
-  $all('.view').forEach(v => v.classList.toggle('active', v.id === 'view-'+state.activeView));
-}));
+function goToView(viewName){
+  state.activeView = viewName;
+  $all('nav.bottom button').forEach(x => x.classList.toggle('active', x.getAttribute('data-view') === viewName));
+  $all('.view').forEach(v => v.classList.toggle('active', v.id === 'view-'+viewName));
+}
+$all('nav.bottom button').forEach(b => b.addEventListener('click', () => goToView(b.getAttribute('data-view'))));
 $('#view-add').classList.add('active');
+
+/* Accesos directos del manifest ("shortcuts"): mantener pulsado el icono de la
+   app instalada permite abrirla ya en una vista concreta, vía ?view=xxx. */
+(function aplicarAccesoDirecto(){
+  const target = new URLSearchParams(location.search).get('view');
+  if(target && ['add','movs','resumen','saldo'].includes(target)) goToView(target);
+})();
 
 /* ================= Add-movement form ================= */
 function categoriaOptionsForTipoPersona(tipo, persona){
@@ -1833,8 +2146,7 @@ $('#btn-edit-delete').addEventListener('click', async () => {
   }
   btn.disabled = true;
   try{
-    await state.db.doc('movimientos/'+id).delete();
-    showToast('Movimiento eliminado');
+    await eliminarMovConDeshacer(id);
     $('#modal-edit-mov').classList.remove('show');
   }catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
   finally{ btn.disabled = false; btn.textContent = 'Eliminar'; }
@@ -1885,6 +2197,24 @@ $('#form-add').addEventListener('submit', async (e) => {
   }
 });
 
+/* Borra un movimiento y ofrece deshacerlo unos segundos: guarda sus datos antes
+   de borrar y, si se pulsa "Deshacer", lo vuelve a crear tal cual (con un id
+   nuevo -- nada más referencia el id de un movimiento, así que es seguro). */
+async function eliminarMovConDeshacer(id){
+  const original = state.movimientos.find(m => m.id === id);
+  await state.db.doc('movimientos/'+id).delete();
+  if(!original){ showToast('Movimiento eliminado'); return; }
+  const restore = Object.assign({}, original);
+  delete restore.id;
+  showToast('Movimiento eliminado', {
+    actionLabel: 'Deshacer',
+    onAction: async () => {
+      try{ await state.db.collection('movimientos').add(restore); showToast('Restaurado ✓'); }
+      catch(err){ console.error(err); showToast('No se pudo restaurar.'); }
+    }
+  });
+}
+
 /* delete movement (tap-to-confirm) */
 document.addEventListener('click', async (e) => {
   const del = e.target.closest('.mov-del[data-id]');
@@ -1892,7 +2222,7 @@ document.addEventListener('click', async (e) => {
   if(del.classList.contains('confirm')){
     const id = del.getAttribute('data-id');
     del.textContent = '…';
-    try{ await state.db.doc('movimientos/'+id).delete(); showToast('Movimiento eliminado'); }
+    try{ await eliminarMovConDeshacer(id); }
     catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
   } else {
     $all('.mov-del.confirm').forEach(x => { x.classList.remove('confirm'); x.textContent = '🗑'; });
@@ -2051,6 +2381,29 @@ $('#btn-export').addEventListener('click', () => {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('Exportado ✓');
+});
+
+/* ================= Copia de seguridad completa (JSON) ================= */
+// Volcado íntegro de todas las colecciones (movimientos ya incluyen su ticket,
+// si lo tienen) -- para restaurar todo a mano si algún día hiciera falta.
+$('#btn-backup').addEventListener('click', () => {
+  const backup = {
+    app: 'Nuestras Finanzas',
+    exportadoEn: new Date().toISOString(),
+    movimientos: state.movimientos,
+    liquidaciones: state.liquidaciones,
+    recurrentes: state.recurrentes,
+    presupuestos: state.presupuestos,
+    metas: state.metas,
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], {type:'application/json;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'nuestras-finanzas-backup-' + todayISO() + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Copia de seguridad descargada ✓');
 });
 
 boot();
