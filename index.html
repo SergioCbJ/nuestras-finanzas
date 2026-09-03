@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuestras Finanzas</title>
+<style>
+:root{
+  --surface:#fcfcfb; --plane:#f9f9f7; --ink:#0b0b0b; --ink-soft:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --border:rgba(11,11,11,0.10); --card-shadow:0 1px 2px rgba(11,11,11,0.06),0 1px 8px rgba(11,11,11,0.04);
+  --blue:#2a78d6; --orange:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --magenta:#e87ba4; --green:#008300; --violet:#4a3aa7; --red:#e34948;
+  --neutral:#adb3ba;
+  --c-ingreso:#008300; --c-gasto:#eb6834; --c-ahorro:#2a78d6; --c-alerta:#d03b3b;
+  --tint-ingreso:#e3f5e1; --tint-gasto:#fdebe0; --tint-ahorro:#dceafb; --tint-alerta:#fbe3e1;
+  --radius:14px; --radius-sm:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --surface:#1a1a19; --plane:#0d0d0d; --ink:#ffffff; --ink-soft:#c3c2b7; --muted:#9a988f;
+    --grid:#2c2c2a; --border:rgba(255,255,255,0.12); --card-shadow:0 1px 2px rgba(0,0,0,0.3),0 1px 8px rgba(0,0,0,0.2);
+    --blue:#3987e5; --orange:#d95926; --aqua:#199e70; --yellow:#c98500; --magenta:#d55181; --green:#3fb43f; --violet:#9085e9; --red:#e66767;
+    --neutral:#5b5f63;
+    --c-ingreso:#3fb43f; --c-gasto:#d95926; --c-ahorro:#3987e5; --c-alerta:#e66767;
+    --tint-ingreso:#173318; --tint-gasto:#33210f; --tint-ahorro:#132a44; --tint-alerta:#3a1917;
+  }
+}
+:root[data-theme="dark"]{
+  --surface:#1a1a19; --plane:#0d0d0d; --ink:#ffffff; --ink-soft:#c3c2b7; --muted:#9a988f;
+  --grid:#2c2c2a; --border:rgba(255,255,255,0.12); --card-shadow:0 1px 2px rgba(0,0,0,0.3),0 1px 8px rgba(0,0,0,0.2);
+  --blue:#3987e5; --orange:#d95926; --aqua:#199e70; --yellow:#c98500; --magenta:#d55181; --green:#3fb43f; --violet:#9085e9; --red:#e66767;
+  --neutral:#5b5f63;
+  --c-ingreso:#3fb43f; --c-gasto:#d95926; --c-ahorro:#3987e5; --c-alerta:#e66767;
+  --tint-ingreso:#173318; --tint-gasto:#33210f; --tint-ahorro:#132a44; --tint-alerta:#3a1917;
+}
+
+*{box-sizing:border-box;}
+body{background:var(--plane);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;}
+button,input,select,textarea{font-family:inherit;}
+h1,h2,h3,p{margin:0;}
+
+#app{max-width:520px;margin:0 auto;min-height:100vh;background:var(--plane);position:relative;padding-bottom:84px;}
+
+/* ---------- Loading / error / gate screens ---------- */
+.full-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px 24px;text-align:center;}
+.spinner{width:32px;height:32px;border-radius:50%;border:3px solid var(--grid);border-top-color:var(--c-ahorro);animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.brand-mark{font-size:40px;}
+.screen-title{font-size:20px;font-weight:700;}
+.screen-sub{color:var(--ink-soft);font-size:14px;max-width:340px;line-height:1.5;}
+
+.gate-choice{display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px;margin-top:8px;}
+.gate-btn{padding:18px;border-radius:var(--radius);border:none;font-size:17px;font-weight:700;color:#fff;cursor:pointer;transition:transform .1s;}
+.gate-btn:active{transform:scale(0.97);}
+.gate-btn.sergio{background:var(--blue);}
+.gate-btn.carmen{background:var(--violet);}
+
+/* ---------- Header ---------- */
+header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.h-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.user-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--plane);border-radius:999px;padding:6px 12px 6px 6px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;}
+.user-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;}
+.user-dot.Sergio{background:var(--blue);}
+.user-dot.Carmen{background:var(--violet);}
+
+main{padding:16px;display:flex;flex-direction:column;gap:16px;}
+.view{display:none;flex-direction:column;gap:16px;}
+.view.active{display:flex;}
+
+/* ---------- Cards & sections ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:16px;}
+.section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:10px;}
+.section-band{background:var(--ink);color:#fff;border-radius:var(--radius-sm);padding:10px 14px;font-weight:700;font-size:14px;}
+
+/* ---------- Segmented control ---------- */
+.segmented{display:flex;background:var(--plane);border:1px solid var(--border);border-radius:999px;padding:3px;gap:3px;}
+.segmented button{flex:1;border:none;background:transparent;padding:9px 8px;border-radius:999px;font-size:14px;font-weight:700;color:var(--ink-soft);cursor:pointer;}
+.segmented button.active{background:var(--c-ahorro);color:#fff;}
+.segmented.tipo button.active{background:var(--c-gasto);}
+.segmented.tipo button[data-val="Ingreso"].active{background:var(--c-ingreso);}
+.segmented.persona button[data-val="Sergio"].active{background:var(--blue);}
+.segmented.persona button[data-val="Carmen"].active{background:var(--violet);}
+
+/* ---------- Form ---------- */
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:12px;font-weight:700;color:var(--ink-soft);}
+.field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{
+  border:1px solid var(--border);background:var(--plane);color:var(--ink);border-radius:var(--radius-sm);
+  padding:11px 12px;font-size:15px;width:100%;min-height:44px;
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--c-ahorro);outline-offset:1px;}
+.amount-input{position:relative;}
+.amount-input input{padding-right:34px;font-weight:700;font-size:18px;}
+.amount-input::after{content:"€";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;}
+.toggle-row .field-label{font-size:14px;font-weight:600;}
+.switch{position:relative;width:44px;height:26px;flex:none;}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.switch .track{position:absolute;inset:0;background:var(--grid);border-radius:999px;transition:.15s;cursor:pointer;}
+.switch .track::before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.3);}
+.switch input:checked + .track{background:var(--c-gasto);}
+.switch input:checked + .track::before{transform:translateX(18px);}
+
+.btn{border:none;border-radius:var(--radius-sm);padding:13px 18px;font-size:15px;font-weight:700;cursor:pointer;width:100%;min-height:46px;}
+.btn-primary{background:var(--c-ahorro);color:#fff;}
+.btn-primary:active{opacity:.85;}
+.btn-ghost{background:transparent;color:var(--c-ahorro);border:1px solid var(--border);}
+.btn-danger-ghost{background:transparent;color:var(--c-alerta);border:1px solid var(--border);}
+.btn-sm{padding:8px 12px;font-size:13px;width:auto;min-height:34px;border-radius:8px;}
+
+/* ---------- KPI cards ---------- */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.kpi-card{border-radius:var(--radius-sm);padding:12px 14px;color:#fff;}
+.kpi-card .kpi-label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;opacity:.92;}
+.kpi-card .kpi-value{font-size:20px;font-weight:800;margin-top:4px;}
+.kpi-card.blue{background:var(--blue);}
+.kpi-card.violet{background:var(--violet);}
+.kpi-card.aqua{background:var(--aqua);color:var(--ink);}
+.kpi-card.alerta{background:var(--c-alerta);}
+
+/* ---------- Month panel ---------- */
+.month-select-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.month-select-row select{flex:1;}
+.mp-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.mp-table th{text-align:right;font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:800;padding:4px 6px;border-bottom:2px solid var(--grid);}
+.mp-table th:first-child,.mp-table td:first-child{text-align:left;}
+.mp-table td{text-align:right;padding:8px 6px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;}
+.mp-table tr.total td{font-weight:800;border-top:2px solid var(--ink-soft);border-bottom:none;background:var(--tint-ahorro);}
+.mp-table td.col-ing{background:var(--tint-ingreso);}
+.mp-table td.col-gas{background:var(--tint-gasto);}
+.mp-table td.col-ahorro{background:var(--tint-ahorro);}
+.mp-table tr.total td.col-ing,.mp-table tr.total td.col-gas,.mp-table tr.total td.col-ahorro{background:var(--tint-ahorro);}
+
+/* ---------- Category bars ---------- */
+.cat-row{display:flex;align-items:center;gap:10px;padding:7px 0;}
+.cat-swatch{width:10px;height:10px;border-radius:3px;flex:none;}
+.cat-name{flex:1;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cat-bar-track{flex:1;height:14px;background:var(--plane);border-radius:4px;overflow:hidden;min-width:60px;}
+.cat-bar-fill{height:100%;border-radius:4px;}
+.cat-value{font-size:13px;font-weight:700;width:74px;text-align:right;font-variant-numeric:tabular-nums;flex:none;}
+
+/* ---------- Movement list ---------- */
+.mov-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--grid);}
+.mov-row:last-child{border-bottom:none;}
+.mov-cat-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.mov-main{flex:1;min-width:0;}
+.mov-concepto{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mov-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.badge{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:6px;}
+.badge.compartido{background:var(--tint-ahorro);color:var(--c-ahorro);}
+.mov-amount{font-weight:800;font-size:14.5px;flex:none;font-variant-numeric:tabular-nums;}
+.mov-amount.ingreso{color:var(--c-ingreso);}
+.mov-amount.gasto{color:var(--c-gasto);}
+.mov-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px 2px;flex:none;}
+.mov-del.confirm{color:var(--c-alerta);font-weight:800;font-size:11px;}
+
+.empty-hint{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 8px;}
+
+/* ---------- Saldo view ---------- */
+.saldo-hero{text-align:center;padding:22px 12px;}
+.saldo-figure{font-size:34px;font-weight:800;margin-top:6px;}
+.saldo-who{font-size:14px;color:var(--ink-soft);margin-top:6px;}
+.saldo-hero.owe{background:var(--tint-alerta);border-radius:var(--radius);}
+.saldo-hero.even{background:var(--tint-ingreso);border-radius:var(--radius);}
+.liq-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--grid);}
+.liq-row:last-child{border-bottom:none;}
+.liq-arrow{font-size:13px;color:var(--ink-soft);white-space:nowrap;font-weight:700;}
+.liq-main{flex:1;min-width:0;}
+.liq-concepto{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.liq-amount{font-weight:800;color:var(--c-ahorro);font-variant-numeric:tabular-nums;}
+
+/* ---------- Bottom nav ---------- */
+nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0);}
+nav.bottom .inner{max-width:520px;width:100%;display:flex;}
+nav.bottom button{flex:1;background:none;border:none;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);cursor:pointer;}
+nav.bottom button .ic{font-size:19px;}
+nav.bottom button .lb{font-size:10.5px;font-weight:700;}
+nav.bottom button.active{color:var(--c-ahorro);}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,12px);background:var(--ink);color:var(--surface);
+  padding:10px 18px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:30;
+  max-width:88%;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+#toast.show{opacity:1;transform:translate(-50%,0);}
+
+/* ---------- Misc ---------- */
+.row-between{display:flex;align-items:center;justify-content:space-between;}
+.muted{color:var(--muted);font-size:12.5px;}
+.link-btn{background:none;border:none;color:var(--c-ahorro);font-weight:700;font-size:13px;cursor:pointer;padding:4px;}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:40;}
+.modal-backdrop.show{display:flex;}
+.modal-sheet{background:var(--surface);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0));
+  display:flex;flex-direction:column;gap:14px;max-height:88vh;overflow-y:auto;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;}
+.modal-head h3{font-size:16px;font-weight:800;}
+.modal-head button{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="screen-loading" class="full-screen">
+    <div class="spinner"></div>
+    <p class="screen-sub">Cargando…</p>
+  </div>
+
+  <div id="screen-error" class="full-screen" style="display:none;">
+    <div class="brand-mark">💶</div>
+    <div class="screen-title">No se puede conectar</div>
+    <p class="screen-sub" id="error-message">Esta página necesita ejecutarse dentro de Claude para guardar los datos compartidos entre Sergio y Carmen.</p>
+  </div>
+
+  <div id="screen-gate" class="full-screen" style="display:none;">
+    <div class="brand-mark">💶</div>
+    <div class="screen-title">Nuestras Finanzas</div>
+    <p class="screen-sub">¿Quién eres?</p>
+    <div class="gate-choice">
+      <button class="gate-btn sergio" data-user="Sergio">Soy Sergio</button>
+      <button class="gate-btn carmen" data-user="Carmen">Soy Carmen</button>
+    </div>
+  </div>
+
+  <div id="screen-main" style="display:none;">
+    <header>
+      <div class="h-title">💶 Nuestras Finanzas</div>
+      <button class="user-pill" id="btn-switch-user">
+        <span class="user-dot" id="user-dot"></span>
+        <span id="user-name"></span>
+      </button>
+    </header>
+
+    <main>
+      <!-- ===================== AÑADIR ===================== -->
+      <section class="view" id="view-add">
+        <div class="card">
+          <div class="section-title">Añadir movimiento</div>
+          <form id="form-add">
+            <div class="field" style="margin-bottom:12px;">
+              <label>Tipo</label>
+              <div class="segmented tipo" id="seg-tipo">
+                <button type="button" data-val="Gasto" class="active">Gasto</button>
+                <button type="button" data-val="Ingreso">Ingreso</button>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>¿Quién?</label>
+              <div class="segmented persona" id="seg-persona">
+                <button type="button" data-val="Sergio">Sergio</button>
+                <button type="button" data-val="Carmen">Carmen</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div class="field">
+                <label for="in-importe">Importe</label>
+                <div class="amount-input"><input type="number" id="in-importe" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required></div>
+              </div>
+              <div class="field">
+                <label for="in-fecha">Fecha</label>
+                <input type="date" id="in-fecha" required>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label for="in-categoria">Categoría</label>
+              <select id="in-categoria" required></select>
+            </div>
+            <div class="field" style="margin-bottom:6px;">
+              <label for="in-concepto">Concepto</label>
+              <input type="text" id="in-concepto" placeholder="p. ej. Mercadona" required maxlength="80">
+            </div>
+            <div class="toggle-row" id="row-compartido">
+              <span class="field-label">Gasto compartido</span>
+              <label class="switch"><input type="checkbox" id="in-compartido"><span class="track"></span></label>
+            </div>
+            <div class="field" style="margin-bottom:14px;">
+              <label for="in-obs">Observaciones (opcional)</label>
+              <input type="text" id="in-obs" maxlength="120">
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar movimiento</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Últimos movimientos</div>
+          <div id="recent-list"></div>
+        </div>
+      </section>
+
+      <!-- ===================== MOVIMIENTOS ===================== -->
+      <section class="view" id="view-movs">
+        <div class="card">
+          <div class="month-select-row">
+            <select id="movs-mes-select"></select>
+          </div>
+          <div id="movs-list"></div>
+        </div>
+      </section>
+
+      <!-- ===================== RESUMEN ===================== -->
+      <section class="view" id="view-resumen">
+        <div class="kpi-grid">
+          <div class="kpi-card blue">
+            <div class="kpi-label">Ahorro acumulado</div>
+            <div class="kpi-value" id="kpi-ahorro-total">—</div>
+          </div>
+          <div class="kpi-card violet">
+            <div class="kpi-label">Ahorro medio / mes</div>
+            <div class="kpi-value" id="kpi-ahorro-medio">—</div>
+          </div>
+          <div class="kpi-card aqua">
+            <div class="kpi-label">% ahorro s/ingresos</div>
+            <div class="kpi-value" id="kpi-pct-ahorro">—</div>
+          </div>
+          <div class="kpi-card alerta">
+            <div class="kpi-label">Saldo pendiente</div>
+            <div class="kpi-value" id="kpi-saldo">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="month-select-row">
+            <select id="resumen-mes-select"></select>
+          </div>
+          <table class="mp-table">
+            <thead><tr><th></th><th>Ingresos</th><th>Gastos</th><th>Ahorro</th></tr></thead>
+            <tbody id="resumen-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Gasto por categoría</div>
+          <div id="cat-breakdown"></div>
+        </div>
+      </section>
+
+      <!-- ===================== SALDO ===================== -->
+      <section class="view" id="view-saldo">
+        <div class="card saldo-hero" id="saldo-hero">
+          <div class="muted">SALDO PENDIENTE</div>
+          <div class="saldo-figure" id="saldo-figure">—</div>
+          <div class="saldo-who" id="saldo-who"></div>
+        </div>
+        <button class="btn btn-primary" id="btn-add-liq">Registrar pago</button>
+        <div class="card">
+          <div class="section-title">Historial de liquidaciones</div>
+          <div id="liq-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="bottom" id="bottom-nav" style="display:none;">
+    <div class="inner">
+      <button data-view="add" class="active"><span class="ic">➕</span><span class="lb">Añadir</span></button>
+      <button data-view="movs"><span class="ic">📋</span><span class="lb">Movimientos</span></button>
+      <button data-view="resumen"><span class="ic">📊</span><span class="lb">Resumen</span></button>
+      <button data-view="saldo"><span class="ic">⚖️</span><span class="lb">Saldo</span></button>
+    </div>
+  </nav>
+
+  <div id="toast"></div>
+
+  <div class="modal-backdrop" id="modal-liq">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Registrar pago</h3><button id="close-modal-liq">✕</button></div>
+      <form id="form-liq">
+        <div class="field" style="margin-bottom:12px;">
+          <label>De (quién paga)</label>
+          <div class="segmented persona" id="seg-liq-de">
+            <button type="button" data-val="Sergio">Sergio</button>
+            <button type="button" data-val="Carmen">Carmen</button>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label for="liq-importe">Importe</label>
+          <div class="amount-input"><input type="number" id="liq-importe" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required></div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label for="liq-fecha">Fecha</label>
+          <input type="date" id="liq-fecha" required>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="liq-concepto">Concepto (opcional)</label>
+          <input type="text" id="liq-concepto" maxlength="100" placeholder="p. ej. Bizum">
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar pago</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ================= Firebase (base de datos gratuita y compartida) =================
+   Sustituye a la capacidad "db" de Claude. Pega aquí la configuración de TU proyecto
+   de Firebase: Consola de Firebase → ⚙ Configuración del proyecto → baja hasta "Tus apps"
+   → app web → "Config". Es seguro que estas claves queden visibles en el código: no dan
+   acceso por sí solas, el acceso real lo controlan las reglas de Firestore (ver guía). */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc,
+  onSnapshot, runTransaction
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBQg5BtoGZTorxgn-keUPGGCSxwBoiMas8",
+  authDomain: "finanzas-7876c.firebaseapp.com",
+  projectId: "finanzas-7876c",
+  storageBucket: "finanzas-7876c.firebasestorage.app",
+  messagingSenderId: "42742648070",
+  appId: "1:42742648070:web:2398bdd72026071d9ea287",
+  measurementId: "G-C1G7BGB1CR"
+};
+
+let fs = null;
+try{
+  const fbApp = initializeApp(firebaseConfig);
+  fs = getFirestore(fbApp);
+}catch(e){ console.error('Firebase init error', e); fs = null; }
+
+/* Adaptador: le da al resto de la app (sin tocar ni una línea más abajo) la misma
+   forma que ya usaba (doc/collection, get/set/delete/add/onSnapshot). */
+function makeDb(fsInstance){
+  function wrapDocSnap(snap){
+    return { id: snap.id, exists: snap.exists(), data: () => (snap.exists() ? snap.data() : undefined) };
+  }
+  function docRef(path){
+    const ref = doc(fsInstance, path);
+    return {
+      id: ref.id,
+      __ref: ref,
+      get: () => getDoc(ref).then(wrapDocSnap),
+      set: (data) => setDoc(ref, data),
+      delete: () => deleteDoc(ref),
+      onSnapshot: (next, err) => onSnapshot(ref, snap => next(wrapDocSnap(snap)), err),
+    };
+  }
+  function collRef(path){
+    const ref = collection(fsInstance, path);
+    return {
+      onSnapshot: (next, err) => onSnapshot(ref, snap => {
+        next({ docs: snap.docs.map(d => ({ id: d.id, data: () => d.data() })) });
+      }, err),
+      add: (data) => addDoc(ref, data).then(r => ({ id: r.id })),
+    };
+  }
+  return { doc: docRef, collection: collRef };
+}
+/* ================= Fin bloque Firebase ================= */
+
+const SEED_DATA = {"movimientos":[{"id":"seed_m_001","fecha":"2023-04-24","mes":"2023-04","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":9.25,"obs":""},{"id":"seed_m_002","fecha":"2025-12-27","mes":"2025-12","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Comida Gato","compartido":false,"importe":22.0,"obs":""},{"id":"seed_m_003","fecha":"2025-12-27","mes":"2025-12","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":28.0,"obs":""},{"id":"seed_m_004","fecha":"2025-12-27","mes":"2025-12","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Farmacia Gran Alacant","compartido":true,"importe":11.0,"obs":""},{"id":"seed_m_005","fecha":"2025-12-28","mes":"2025-12","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Devolucion Dari","compartido":false,"importe":350.0,"obs":""},{"id":"seed_m_006","fecha":"2025-12-29","mes":"2025-12","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Pan Juanita","compartido":true,"importe":2.2,"obs":""},{"id":"seed_m_007","fecha":"2025-12-31","mes":"2025-12","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca","compartido":false,"importe":359.92,"obs":""},{"id":"seed_m_008","fecha":"2026-01-02","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Netflix ","compartido":true,"importe":7.0,"obs":""},{"id":"seed_m_009","fecha":"2026-01-02","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Cena Andrea","compartido":true,"importe":10.0,"obs":""},{"id":"seed_m_010","fecha":"2026-01-03","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Mercadona+Dialprix","compartido":true,"importe":30.0,"obs":""},{"id":"seed_m_011","fecha":"2026-01-04","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Cena Ramen","compartido":false,"importe":37.5,"obs":""},{"id":"seed_m_012","fecha":"2026-01-05","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Iberdrola","compartido":true,"importe":65.0,"obs":""},{"id":"seed_m_013","fecha":"2026-01-05","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Comunidad","concepto":"Comunidad","compartido":false,"importe":81.0,"obs":""},{"id":"seed_m_014","fecha":"2026-01-05","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":20.0,"obs":""},{"id":"seed_m_015","fecha":"2026-01-05","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Toallas","compartido":true,"importe":46.0,"obs":""},{"id":"seed_m_016","fecha":"2026-01-05","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dialprix","compartido":true,"importe":11.0,"obs":""},{"id":"seed_m_017","fecha":"2026-01-07","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Transporte y carburantes","concepto":"Gasolina","compartido":false,"importe":40.0,"obs":""},{"id":"seed_m_018","fecha":"2026-01-07","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Desayuno padres carmen","compartido":false,"importe":16.0,"obs":""},{"id":"seed_m_019","fecha":"2026-01-08","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro casa","compartido":false,"importe":22.19,"obs":""},{"id":"seed_m_020","fecha":"2026-01-09","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia+Pan","compartido":true,"importe":11.0,"obs":""},{"id":"seed_m_021","fecha":"2026-01-12","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":1.3,"obs":""},{"id":"seed_m_022","fecha":"2026-01-15","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":5.0,"obs":""},{"id":"seed_m_023","fecha":"2026-01-20","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"CrossFit ","compartido":false,"importe":55.0,"obs":""},{"id":"seed_m_024","fecha":"2026-01-20","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":41.0,"obs":""},{"id":"seed_m_025","fecha":"2026-01-21","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Mercadona ","compartido":true,"importe":7.0,"obs":""},{"id":"seed_m_026","fecha":"2026-01-21","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Café Amazon ","compartido":true,"importe":10.65,"obs":""},{"id":"seed_m_027","fecha":"2026-01-21","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Rímel farmacia ","compartido":false,"importe":15.0,"obs":""},{"id":"seed_m_028","fecha":"2026-01-24","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Farmacia y Dialprix","compartido":true,"importe":24.0,"obs":""},{"id":"seed_m_029","fecha":"2026-01-28","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Préstamo dari","compartido":false,"importe":350.0,"obs":""},{"id":"seed_m_030","fecha":"2026-01-29","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Curso formación opo","compartido":false,"importe":32.0,"obs":""},{"id":"seed_m_031","fecha":"2026-01-29","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Formación opo","compartido":false,"importe":32.0,"obs":""},{"id":"seed_m_032","fecha":"2026-01-30","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Cena McDonalds","compartido":false,"importe":33.19,"obs":""},{"id":"seed_m_033","fecha":"2026-01-31","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Panaderia","compartido":true,"importe":5.0,"obs":""},{"id":"seed_m_034","fecha":"2026-01-31","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca","compartido":false,"importe":360.0,"obs":""},{"id":"seed_m_035","fecha":"2026-01-31","mes":"2026-01","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Enchufes ","compartido":true,"importe":47.0,"obs":""},{"id":"seed_m_036","fecha":"2026-01-31","mes":"2026-01","tipo":"Gasto","persona":"Carmen","categoria":"Transporte y carburantes","concepto":"Gasolina Toledo","compartido":false,"importe":30.0,"obs":""},{"id":"seed_m_037","fecha":"2026-01-31","mes":"2026-01","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Enero 2026","compartido":false,"importe":1265.12,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_038","fecha":"2026-01-31","mes":"2026-01","tipo":"Ingreso","persona":"Carmen","categoria":"Hora Matinal","concepto":"Ingreso Enero 2026","compartido":false,"importe":130.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_039","fecha":"2026-01-31","mes":"2026-01","tipo":"Ingreso","persona":"Carmen","categoria":"Dinero Padres","concepto":"Ingreso Enero 2026","compartido":false,"importe":20.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_040","fecha":"2026-01-31","mes":"2026-01","tipo":"Ingreso","persona":"Sergio","categoria":"Otros","concepto":"Ingreso Enero 2026","compartido":false,"importe":365.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_041","fecha":"2026-01-31","mes":"2026-01","tipo":"Ingreso","persona":"Carmen","categoria":"Otros","concepto":"Ingreso Enero 2026","compartido":false,"importe":5.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_042","fecha":"2026-02-02","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Compra Lidl","compartido":true,"importe":38.0,"obs":""},{"id":"seed_m_043","fecha":"2026-02-02","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Gasolina Mercedes","compartido":false,"importe":35.0,"obs":""},{"id":"seed_m_044","fecha":"2026-02-02","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Filtro Agua","compartido":true,"importe":26.0,"obs":""},{"id":"seed_m_045","fecha":"2026-02-02","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Tulipanes","compartido":false,"importe":12.0,"obs":""},{"id":"seed_m_046","fecha":"2026-02-03","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":12.0,"obs":""},{"id":"seed_m_047","fecha":"2026-02-03","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":21.0,"obs":""},{"id":"seed_m_048","fecha":"2026-02-03","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Netflix","compartido":true,"importe":7.0,"obs":""},{"id":"seed_m_049","fecha":"2026-02-04","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro Casa","compartido":false,"importe":22.19,"obs":""},{"id":"seed_m_050","fecha":"2026-02-05","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Luz","compartido":true,"importe":82.0,"obs":""},{"id":"seed_m_051","fecha":"2026-02-05","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Juanita","compartido":true,"importe":3.0,"obs":""},{"id":"seed_m_052","fecha":"2026-02-08","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Sushi cero","compartido":false,"importe":60.0,"obs":""},{"id":"seed_m_053","fecha":"2026-02-09","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Otros","concepto":"Pelu","compartido":false,"importe":12.0,"obs":""},{"id":"seed_m_054","fecha":"2026-02-10","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Skincare ","compartido":true,"importe":13.0,"obs":""},{"id":"seed_m_055","fecha":"2026-02-10","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Sérum pestañas ","compartido":false,"importe":9.0,"obs":""},{"id":"seed_m_056","fecha":"2026-02-10","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":12.0,"obs":""},{"id":"seed_m_057","fecha":"2026-02-11","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Día","compartido":true,"importe":5.0,"obs":""},{"id":"seed_m_058","fecha":"2026-02-12","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":10.0,"obs":""},{"id":"seed_m_059","fecha":"2026-02-13","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":46.0,"obs":""},{"id":"seed_m_060","fecha":"2026-02-13","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Pastelería Royal","compartido":false,"importe":11.0,"obs":""},{"id":"seed_m_061","fecha":"2026-02-16","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Juanita","compartido":true,"importe":3.0,"obs":""},{"id":"seed_m_062","fecha":"2026-02-20","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Mercadona + Lidl","compartido":true,"importe":25.0,"obs":""},{"id":"seed_m_063","fecha":"2026-02-23","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Crossfit","compartido":false,"importe":55.0,"obs":""},{"id":"seed_m_064","fecha":"2026-02-23","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Gastos extraordinarios","concepto":"Aceite coche +taller","compartido":false,"importe":148.0,"obs":""},{"id":"seed_m_065","fecha":"2026-02-23","mes":"2026-02","tipo":"Gasto","persona":"Carmen","categoria":"Transporte y carburantes","concepto":"Diésel","compartido":false,"importe":30.0,"obs":""},{"id":"seed_m_066","fecha":"2026-02-25","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Diésel mercedes","compartido":false,"importe":35.0,"obs":""},{"id":"seed_m_067","fecha":"2026-02-26","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Aceite AOVE","compartido":true,"importe":26.0,"obs":""},{"id":"seed_m_068","fecha":"2026-02-26","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Cafe","compartido":true,"importe":11.0,"obs":""},{"id":"seed_m_069","fecha":"2026-02-27","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Préstamo Dari","compartido":false,"importe":450.0,"obs":""},{"id":"seed_m_070","fecha":"2026-02-28","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Rossman","compartido":false,"importe":6.0,"obs":""},{"id":"seed_m_071","fecha":"2026-02-28","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":55.0,"obs":""},{"id":"seed_m_072","fecha":"2026-02-28","mes":"2026-02","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Cerves y cena Aljub","compartido":false,"importe":56.0,"obs":""},{"id":"seed_m_073","fecha":"2026-02-28","mes":"2026-02","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Febrero 2026","compartido":false,"importe":1332.68,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_074","fecha":"2026-02-28","mes":"2026-02","tipo":"Ingreso","persona":"Carmen","categoria":"Hora Matinal","concepto":"Ingreso Febrero 2026","compartido":false,"importe":190.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_075","fecha":"2026-02-28","mes":"2026-02","tipo":"Ingreso","persona":"Carmen","categoria":"Academia","concepto":"Ingreso Febrero 2026","compartido":false,"importe":214.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_076","fecha":"2026-02-28","mes":"2026-02","tipo":"Ingreso","persona":"Carmen","categoria":"Dinero Padres","concepto":"Ingreso Febrero 2026","compartido":false,"importe":55.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_077","fecha":"2026-03-01","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Figma","compartido":false,"importe":25.0,"obs":""},{"id":"seed_m_078","fecha":"2026-03-02","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca","compartido":false,"importe":359.0,"obs":""},{"id":"seed_m_079","fecha":"2026-03-02","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":21.0,"obs":""},{"id":"seed_m_080","fecha":"2026-03-03","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Netflix","compartido":true,"importe":7.0,"obs":""},{"id":"seed_m_081","fecha":"2026-03-03","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Masilla ","compartido":true,"importe":3.0,"obs":""},{"id":"seed_m_082","fecha":"2026-03-03","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Zara Home ","compartido":true,"importe":10.0,"obs":""},{"id":"seed_m_083","fecha":"2026-03-05","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Fundas sofá ","compartido":true,"importe":53.0,"obs":""},{"id":"seed_m_084","fecha":"2026-03-06","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro casa","compartido":false,"importe":22.19,"obs":""},{"id":"seed_m_085","fecha":"2026-03-06","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Iberdrola","compartido":true,"importe":43.0,"obs":""},{"id":"seed_m_086","fecha":"2026-03-07","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Agua","concepto":"Agua","compartido":true,"importe":52.09,"obs":""},{"id":"seed_m_087","fecha":"2026-03-07","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Limpiador +portacepillos","compartido":true,"importe":4.5,"obs":""},{"id":"seed_m_088","fecha":"2026-03-09","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":23.0,"obs":""},{"id":"seed_m_089","fecha":"2026-03-09","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Silla","compartido":false,"importe":174.79,"obs":""},{"id":"seed_m_090","fecha":"2026-03-10","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Planta jysk","compartido":false,"importe":40.0,"obs":""},{"id":"seed_m_091","fecha":"2026-03-10","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Dorsal carrera 10k","compartido":false,"importe":27.0,"obs":""},{"id":"seed_m_092","fecha":"2026-03-13","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":31.0,"obs":""},{"id":"seed_m_093","fecha":"2026-03-15","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Petroprix","compartido":true,"importe":62.0,"obs":""},{"id":"seed_m_094","fecha":"2026-03-18","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Cross","compartido":false,"importe":30.0,"obs":""},{"id":"seed_m_095","fecha":"2026-03-20","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":21.0,"obs":""},{"id":"seed_m_096","fecha":"2026-03-23","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":26.0,"obs":""},{"id":"seed_m_097","fecha":"2026-03-27","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Préstamo Dari","compartido":false,"importe":350.0,"obs":""},{"id":"seed_m_098","fecha":"2026-03-27","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":28.1,"obs":""},{"id":"seed_m_099","fecha":"2026-03-29","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Condones y lubri","compartido":true,"importe":16.0,"obs":""},{"id":"seed_m_100","fecha":"2026-03-29","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Regalo Mama","compartido":false,"importe":20.0,"obs":""},{"id":"seed_m_101","fecha":"2026-03-31","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca","compartido":false,"importe":359.92,"obs":""},{"id":"seed_m_102","fecha":"2026-03-31","mes":"2026-03","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Polagas","compartido":true,"importe":20.0,"obs":""},{"id":"seed_m_103","fecha":"2026-03-31","mes":"2026-03","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl + Mercadona ","compartido":true,"importe":11.0,"obs":""},{"id":"seed_m_104","fecha":"2026-03-31","mes":"2026-03","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Marzo 2026","compartido":false,"importe":1330.33,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_105","fecha":"2026-03-31","mes":"2026-03","tipo":"Ingreso","persona":"Carmen","categoria":"Hora Matinal","concepto":"Ingreso Marzo 2026","compartido":false,"importe":150.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_106","fecha":"2026-03-31","mes":"2026-03","tipo":"Ingreso","persona":"Carmen","categoria":"Academia","concepto":"Ingreso Marzo 2026","compartido":false,"importe":214.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_107","fecha":"2026-03-31","mes":"2026-03","tipo":"Ingreso","persona":"Carmen","categoria":"Dinero Padres","concepto":"Ingreso Marzo 2026","compartido":false,"importe":50.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_108","fecha":"2026-03-31","mes":"2026-03","tipo":"Ingreso","persona":"Sergio","categoria":"Otros","concepto":"Ingreso Marzo 2026","compartido":false,"importe":245.73,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_109","fecha":"2026-04-01","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":21.0,"obs":""},{"id":"seed_m_110","fecha":"2026-04-02","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Netflix","compartido":true,"importe":7.0,"obs":""},{"id":"seed_m_111","fecha":"2026-04-02","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dialprix","compartido":true,"importe":9.0,"obs":""},{"id":"seed_m_112","fecha":"2026-04-04","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":50.0,"obs":""},{"id":"seed_m_113","fecha":"2026-04-06","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Iberdrola ","compartido":true,"importe":61.0,"obs":""},{"id":"seed_m_114","fecha":"2026-04-06","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro Casa","compartido":false,"importe":22.19,"obs":""},{"id":"seed_m_115","fecha":"2026-04-06","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Comunidad","concepto":"Comunidad","compartido":false,"importe":81.0,"obs":""},{"id":"seed_m_116","fecha":"2026-04-07","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"CrossFit ","compartido":false,"importe":55.0,"obs":""},{"id":"seed_m_117","fecha":"2026-04-09","mes":"2026-04","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Café ","compartido":true,"importe":12.0,"obs":""},{"id":"seed_m_118","fecha":"2026-04-10","mes":"2026-04","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Día ","compartido":true,"importe":20.0,"obs":""},{"id":"seed_m_119","fecha":"2026-04-12","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Kebabs","compartido":false,"importe":6.0,"obs":""},{"id":"seed_m_120","fecha":"2026-04-15","mes":"2026-04","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl + mercqdona ","compartido":true,"importe":30.0,"obs":""},{"id":"seed_m_121","fecha":"2026-04-15","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Hiperber ","compartido":false,"importe":8.0,"obs":""},{"id":"seed_m_122","fecha":"2026-04-16","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":" Zapatillas running ","compartido":false,"importe":65.0,"obs":""},{"id":"seed_m_123","fecha":"2026-04-17","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Otros","concepto":"Peluquería ","compartido":false,"importe":12.0,"obs":""},{"id":"seed_m_124","fecha":"2026-04-17","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Juanita","compartido":false,"importe":6.0,"obs":""},{"id":"seed_m_125","fecha":"2026-04-19","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Petroprix","compartido":true,"importe":35.0,"obs":""},{"id":"seed_m_126","fecha":"2026-04-19","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Entrada Parking","compartido":false,"importe":10.0,"obs":""},{"id":"seed_m_127","fecha":"2026-04-21","mes":"2026-04","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":45.0,"obs":""},{"id":"seed_m_128","fecha":"2026-04-23","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Palilleria","compartido":false,"importe":166.0,"obs":""},{"id":"seed_m_129","fecha":"2026-04-23","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":14.0,"obs":""},{"id":"seed_m_130","fecha":"2026-04-30","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Préstamo Dari","compartido":false,"importe":350.0,"obs":""},{"id":"seed_m_131","fecha":"2026-04-30","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca","compartido":false,"importe":359.92,"obs":""},{"id":"seed_m_132","fecha":"2026-04-30","mes":"2026-04","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"CrossFit ","compartido":false,"importe":55.0,"obs":""},{"id":"seed_m_133","fecha":"2026-04-30","mes":"2026-04","tipo":"Gasto","persona":"Carmen","categoria":"Gastos extraordinarios","concepto":"Dentista ","compartido":false,"importe":288.0,"obs":""},{"id":"seed_m_134","fecha":"2026-04-30","mes":"2026-04","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Abril 2026","compartido":false,"importe":1329.45,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_135","fecha":"2026-04-30","mes":"2026-04","tipo":"Ingreso","persona":"Carmen","categoria":"Hora Matinal","concepto":"Ingreso Abril 2026","compartido":false,"importe":70.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_136","fecha":"2026-04-30","mes":"2026-04","tipo":"Ingreso","persona":"Carmen","categoria":"Dinero Padres","concepto":"Ingreso Abril 2026","compartido":false,"importe":300.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_137","fecha":"2026-04-30","mes":"2026-04","tipo":"Ingreso","persona":"Carmen","categoria":"Otros","concepto":"Ingreso Abril 2026","compartido":false,"importe":3.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_138","fecha":"2026-05-02","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Netflix","compartido":true,"importe":7.0,"obs":""},{"id":"seed_m_139","fecha":"2026-05-03","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Día + Tahona","compartido":true,"importe":9.0,"obs":""},{"id":"seed_m_140","fecha":"2026-05-04","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Gasolina","compartido":true,"importe":30.0,"obs":""},{"id":"seed_m_141","fecha":"2026-05-05","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Impuestos, tasas y multas","concepto":"Basuras","compartido":false,"importe":68.0,"obs":""},{"id":"seed_m_142","fecha":"2026-05-05","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Iberdrola","compartido":true,"importe":57.0,"obs":""},{"id":"seed_m_143","fecha":"2026-05-05","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":21.0,"obs":""},{"id":"seed_m_144","fecha":"2026-05-06","mes":"2026-05","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":36.0,"obs":""},{"id":"seed_m_145","fecha":"2026-05-06","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro Casa","compartido":false,"importe":22.19,"obs":""},{"id":"seed_m_146","fecha":"2026-05-07","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Día+Juanita","compartido":true,"importe":19.0,"obs":""},{"id":"seed_m_147","fecha":"2026-05-12","mes":"2026-05","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Marvimundo","compartido":false,"importe":20.0,"obs":""},{"id":"seed_m_148","fecha":"2026-05-13","mes":"2026-05","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":24.0,"obs":""},{"id":"seed_m_149","fecha":"2026-05-16","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Otros","concepto":"Regalo Marcos","compartido":false,"importe":10.0,"obs":""},{"id":"seed_m_150","fecha":"2026-05-16","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Cerves arenales","compartido":false,"importe":7.0,"obs":""},{"id":"seed_m_151","fecha":"2026-05-17","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Diesel","compartido":true,"importe":68.0,"obs":""},{"id":"seed_m_152","fecha":"2026-05-17","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Cena pinseria + Cerves","compartido":false,"importe":40.0,"obs":""},{"id":"seed_m_153","fecha":"2026-05-18","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Día + Pan","compartido":true,"importe":13.0,"obs":""},{"id":"seed_m_154","fecha":"2026-05-21","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Libro Carmen","compartido":false,"importe":24.65,"obs":""},{"id":"seed_m_155","fecha":"2026-05-21","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Pan","compartido":true,"importe":3.75,"obs":""},{"id":"seed_m_156","fecha":"2026-05-23","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Bushmills","compartido":false,"importe":2.5,"obs":""},{"id":"seed_m_157","fecha":"2026-05-25","mes":"2026-05","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":39.0,"obs":""},{"id":"seed_m_158","fecha":"2026-05-27","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia+Juanita","compartido":true,"importe":14.97,"obs":""},{"id":"seed_m_159","fecha":"2026-05-30","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Compras primark","compartido":false,"importe":32.65,"obs":""},{"id":"seed_m_160","fecha":"2026-05-30","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":25.0,"obs":""},{"id":"seed_m_161","fecha":"2026-05-31","mes":"2026-05","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca ","compartido":false,"importe":359.62,"obs":""},{"id":"seed_m_162","fecha":"2026-05-31","mes":"2026-05","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Mayo 2026","compartido":false,"importe":1334.33,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_163","fecha":"2026-05-31","mes":"2026-05","tipo":"Ingreso","persona":"Carmen","categoria":"Hora Matinal","concepto":"Ingreso Mayo 2026","compartido":false,"importe":140.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_164","fecha":"2026-05-31","mes":"2026-05","tipo":"Ingreso","persona":"Carmen","categoria":"Academia","concepto":"Ingreso Mayo 2026","compartido":false,"importe":229.98,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_165","fecha":"2026-06-01","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Devolución ","compartido":false,"importe":400.0,"obs":""},{"id":"seed_m_166","fecha":"2026-06-01","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"CrossFit","compartido":false,"importe":55.0,"obs":""},{"id":"seed_m_167","fecha":"2026-06-01","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Otros","concepto":"Pelu","compartido":false,"importe":12.0,"obs":""},{"id":"seed_m_168","fecha":"2026-06-02","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Netflix","compartido":true,"importe":9.0,"obs":""},{"id":"seed_m_169","fecha":"2026-06-02","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":25.0,"obs":""},{"id":"seed_m_170","fecha":"2026-06-04","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":48.0,"obs":""},{"id":"seed_m_171","fecha":"2026-06-04","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Action + druni","compartido":false,"importe":27.0,"obs":""},{"id":"seed_m_172","fecha":"2026-06-04","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro casa","compartido":false,"importe":22.23,"obs":""},{"id":"seed_m_173","fecha":"2026-06-04","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Iberdrola","compartido":true,"importe":60.0,"obs":""},{"id":"seed_m_174","fecha":"2026-06-05","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Juanita + Dia","compartido":true,"importe":3.75,"obs":""},{"id":"seed_m_175","fecha":"2026-06-05","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"gasolina Plenoil","compartido":true,"importe":15.0,"obs":""},{"id":"seed_m_176","fecha":"2026-06-06","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Kfc","compartido":false,"importe":16.0,"obs":""},{"id":"seed_m_177","fecha":"2026-06-06","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Saint James","compartido":false,"importe":7.0,"obs":""},{"id":"seed_m_178","fecha":"2026-06-07","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Pase R6","compartido":false,"importe":10.0,"obs":""},{"id":"seed_m_179","fecha":"2026-06-08","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Agua","concepto":"Agua","compartido":true,"importe":58.0,"obs":""},{"id":"seed_m_180","fecha":"2026-06-08","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":18.0,"obs":""},{"id":"seed_m_181","fecha":"2026-06-08","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Pantalla","compartido":false,"importe":166.0,"obs":""},{"id":"seed_m_182","fecha":"2026-06-10","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Gasolina","compartido":true,"importe":40.0,"obs":""},{"id":"seed_m_183","fecha":"2026-06-15","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":55.0,"obs":""},{"id":"seed_m_184","fecha":"2026-06-19","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":7.0,"obs":""},{"id":"seed_m_185","fecha":"2026-06-21","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Amazon","compartido":true,"importe":50.0,"obs":""},{"id":"seed_m_186","fecha":"2026-06-21","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":8.0,"obs":""},{"id":"seed_m_187","fecha":"2026-06-22","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Polagas","compartido":true,"importe":20.0,"obs":""},{"id":"seed_m_188","fecha":"2026-06-23","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Action ","compartido":false,"importe":5.0,"obs":""},{"id":"seed_m_189","fecha":"2026-06-23","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":false,"importe":9.14,"obs":""},{"id":"seed_m_190","fecha":"2026-06-23","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Hogueras","compartido":false,"importe":39.6,"obs":""},{"id":"seed_m_191","fecha":"2026-06-26","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Gasolina","compartido":true,"importe":17.0,"obs":""},{"id":"seed_m_192","fecha":"2026-06-26","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Gastos extraordinarios","concepto":"Mantenimiento Aire acondicionado ","compartido":false,"importe":90.0,"obs":""},{"id":"seed_m_193","fecha":"2026-06-26","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Día ","compartido":true,"importe":32.0,"obs":""},{"id":"seed_m_194","fecha":"2026-06-27","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":61.0,"obs":""},{"id":"seed_m_195","fecha":"2026-06-27","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Día+Dialprix","compartido":true,"importe":27.0,"obs":""},{"id":"seed_m_196","fecha":"2026-06-28","mes":"2026-06","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Arrancador + llave ","compartido":true,"importe":37.0,"obs":""},{"id":"seed_m_197","fecha":"2026-06-28","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Helados Vecinos","compartido":false,"importe":7.8,"obs":""},{"id":"seed_m_198","fecha":"2026-06-30","mes":"2026-06","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca ","compartido":false,"importe":359.92,"obs":""},{"id":"seed_m_199","fecha":"2026-06-30","mes":"2026-06","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Junio 2026","compartido":false,"importe":1333.71,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_200","fecha":"2026-06-30","mes":"2026-06","tipo":"Ingreso","persona":"Carmen","categoria":"Hora Matinal","concepto":"Ingreso Junio 2026","compartido":false,"importe":150.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_201","fecha":"2026-06-30","mes":"2026-06","tipo":"Ingreso","persona":"Carmen","categoria":"Vesprada","concepto":"Ingreso Junio 2026","compartido":false,"importe":1480.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_202","fecha":"2026-06-30","mes":"2026-06","tipo":"Ingreso","persona":"Sergio","categoria":"Dinero Padres","concepto":"Ingreso Junio 2026","compartido":false,"importe":100.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_203","fecha":"2026-06-30","mes":"2026-06","tipo":"Ingreso","persona":"Carmen","categoria":"Dinero Padres","concepto":"Ingreso Junio 2026","compartido":false,"importe":520.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_204","fecha":"2026-06-30","mes":"2026-06","tipo":"Ingreso","persona":"Carmen","categoria":"Otros","concepto":"Ingreso Junio 2026","compartido":false,"importe":79.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_205","fecha":"2026-07-02","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":20.0,"obs":""},{"id":"seed_m_206","fecha":"2026-07-03","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":60.0,"obs":""},{"id":"seed_m_207","fecha":"2026-07-03","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Crossfit","compartido":false,"importe":55.0,"obs":""},{"id":"seed_m_208","fecha":"2026-07-03","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Regalo Papa","compartido":false,"importe":30.0,"obs":""},{"id":"seed_m_209","fecha":"2026-07-04","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro Casa","compartido":false,"importe":23.35,"obs":""},{"id":"seed_m_210","fecha":"2026-07-05","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Filtros Agua + Cafe","compartido":true,"importe":51.0,"obs":""},{"id":"seed_m_211","fecha":"2026-07-06","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Iberdrola ","compartido":true,"importe":74.0,"obs":""},{"id":"seed_m_212","fecha":"2026-07-06","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Comunidad","concepto":"Comunidad","compartido":false,"importe":81.0,"obs":""},{"id":"seed_m_213","fecha":"2026-07-08","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia + Juanita","compartido":true,"importe":9.0,"obs":""},{"id":"seed_m_214","fecha":"2026-07-09","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Primark Casa","compartido":false,"importe":17.0,"obs":""},{"id":"seed_m_215","fecha":"2026-07-09","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Vestido Carmen","compartido":false,"importe":6.0,"obs":""},{"id":"seed_m_216","fecha":"2026-07-10","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"HSN","compartido":false,"importe":32.0,"obs":""},{"id":"seed_m_217","fecha":"2026-07-10","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Préstamo Dari","compartido":false,"importe":400.0,"obs":""},{"id":"seed_m_218","fecha":"2026-07-10","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":20.0,"obs":""},{"id":"seed_m_219","fecha":"2026-07-11","mes":"2026-07","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Día + dialprix ","compartido":true,"importe":21.0,"obs":""},{"id":"seed_m_220","fecha":"2026-07-14","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":31.0,"obs":""},{"id":"seed_m_221","fecha":"2026-07-14","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"sushi","compartido":false,"importe":42.0,"obs":""},{"id":"seed_m_222","fecha":"2026-07-16","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Ropa Álvaro Morena","compartido":false,"importe":38.0,"obs":""},{"id":"seed_m_223","fecha":"2026-07-17","mes":"2026-07","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Lidl","compartido":true,"importe":50.0,"obs":""},{"id":"seed_m_224","fecha":"2026-07-17","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Gasolina","compartido":true,"importe":40.0,"obs":""},{"id":"seed_m_225","fecha":"2026-07-17","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Gastos extraordinarios","concepto":"Comida Gatos","compartido":true,"importe":25.0,"obs":""},{"id":"seed_m_226","fecha":"2026-07-17","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Patatas agricultores europeos","compartido":true,"importe":8.0,"obs":""},{"id":"seed_m_227","fecha":"2026-07-17","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Otros","concepto":"Peluquería ","compartido":false,"importe":12.0,"obs":""},{"id":"seed_m_228","fecha":"2026-07-20","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Cuota Toyota","compartido":true,"importe":270.0,"obs":""},{"id":"seed_m_229","fecha":"2026-07-24","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Quality+Lidl","compartido":true,"importe":19.0,"obs":""},{"id":"seed_m_230","fecha":"2026-07-25","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Comida+Fiesta Amigos","compartido":false,"importe":50.0,"obs":""},{"id":"seed_m_231","fecha":"2026-07-27","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dialprix","compartido":true,"importe":12.0,"obs":""},{"id":"seed_m_232","fecha":"2026-07-27","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Otros","concepto":"CrossFit","compartido":false,"importe":5.0,"obs":""},{"id":"seed_m_233","fecha":"2026-07-28","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Otros","concepto":"Padel","compartido":false,"importe":8.0,"obs":""},{"id":"seed_m_234","fecha":"2026-07-28","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Devolucion","compartido":false,"importe":400.0,"obs":""},{"id":"seed_m_235","fecha":"2026-07-30","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Mercadona","compartido":true,"importe":66.0,"obs":""},{"id":"seed_m_236","fecha":"2026-07-31","mes":"2026-07","tipo":"Gasto","persona":"Sergio","categoria":"Alquiler o Hipoteca","concepto":"Hipoteca","compartido":false,"importe":359.92,"obs":""},{"id":"seed_m_237","fecha":"2026-07-31","mes":"2026-07","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Julio 2026","compartido":false,"importe":1329.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_238","fecha":"2026-07-31","mes":"2026-07","tipo":"Ingreso","persona":"Sergio","categoria":"Horas y Pagas Extra","concepto":"Ingreso Julio 2026","compartido":false,"importe":1365.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_239","fecha":"2026-07-31","mes":"2026-07","tipo":"Ingreso","persona":"Carmen","categoria":"Academia","concepto":"Ingreso Julio 2026","compartido":false,"importe":473.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_240","fecha":"2026-07-31","mes":"2026-07","tipo":"Ingreso","persona":"Carmen","categoria":"Otros","concepto":"Ingreso Julio 2026","compartido":false,"importe":70.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_241","fecha":"2026-08-02","mes":"2026-08","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Día ","compartido":true,"importe":4.0,"obs":""},{"id":"seed_m_242","fecha":"2026-08-02","mes":"2026-08","tipo":"Gasto","persona":"Carmen","categoria":"Ocio","concepto":"Desayuno avenida ","compartido":false,"importe":14.0,"obs":""},{"id":"seed_m_243","fecha":"2026-08-02","mes":"2026-08","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Jysk","compartido":true,"importe":36.0,"obs":""},{"id":"seed_m_244","fecha":"2026-08-03","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"CrossFit ","compartido":false,"importe":55.0,"obs":""},{"id":"seed_m_245","fecha":"2026-08-03","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Mercadona","compartido":true,"importe":17.0,"obs":""},{"id":"seed_m_246","fecha":"2026-08-03","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Padel","compartido":false,"importe":5.0,"obs":""},{"id":"seed_m_247","fecha":"2026-08-04","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":17.0,"obs":""},{"id":"seed_m_248","fecha":"2026-08-05","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Regalo Joyero carmen","compartido":false,"importe":84.0,"obs":""},{"id":"seed_m_249","fecha":"2026-08-05","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Internet","concepto":"Avatel","compartido":true,"importe":20.0,"obs":""},{"id":"seed_m_250","fecha":"2026-08-05","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Luz","concepto":"Iberdrola","compartido":true,"importe":134.0,"obs":""},{"id":"seed_m_251","fecha":"2026-08-05","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Seguros","concepto":"Seguro Casa","compartido":false,"importe":20.0,"obs":""},{"id":"seed_m_252","fecha":"2026-08-05","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Telefonía","concepto":"Vodafone","compartido":false,"importe":21.0,"obs":""},{"id":"seed_m_253","fecha":"2026-08-08","mes":"2026-08","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Día","compartido":true,"importe":29.0,"obs":""},{"id":"seed_m_254","fecha":"2026-08-09","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Gasolina","compartido":true,"importe":48.0,"obs":""},{"id":"seed_m_255","fecha":"2026-08-10","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia+Dialprix","compartido":true,"importe":35.0,"obs":""},{"id":"seed_m_256","fecha":"2026-08-12","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dia","compartido":true,"importe":13.0,"obs":""},{"id":"seed_m_257","fecha":"2026-08-14","mes":"2026-08","tipo":"Gasto","persona":"Carmen","categoria":"Alimentación","concepto":"Día ","compartido":true,"importe":24.0,"obs":""},{"id":"seed_m_258","fecha":"2026-08-17","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Compras","concepto":"Pijama","compartido":false,"importe":7.0,"obs":""},{"id":"seed_m_259","fecha":"2026-08-18","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Lidl ","compartido":true,"importe":65.0,"obs":""},{"id":"seed_m_260","fecha":"2026-08-19","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Coche Toyota ","compartido":true,"importe":270.0,"obs":""},{"id":"seed_m_261","fecha":"2026-08-19","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Matrículas y cuotas","concepto":"Suscripcion Claude","compartido":false,"importe":18.0,"obs":""},{"id":"seed_m_262","fecha":"2026-08-19","mes":"2026-08","tipo":"Gasto","persona":"Carmen","categoria":"Compras","concepto":"Café Amazon ","compartido":true,"importe":13.0,"obs":""},{"id":"seed_m_263","fecha":"2026-08-20","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Día ","compartido":true,"importe":26.0,"obs":""},{"id":"seed_m_264","fecha":"2026-08-24","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Alimentación","concepto":"Dialprix","compartido":true,"importe":16.0,"obs":""},{"id":"seed_m_265","fecha":"2026-08-24","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Gastos extraordinarios","concepto":"Regalo Daka ","compartido":false,"importe":10.0,"obs":""},{"id":"seed_m_266","fecha":"2026-08-28","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Prestamo Dari","concepto":"Devolucion","compartido":false,"importe":393.0,"obs":""},{"id":"seed_m_267","fecha":"2026-08-28","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Ocio","concepto":"Cena cumple daka","compartido":false,"importe":22.0,"obs":""},{"id":"seed_m_268","fecha":"2026-08-30","mes":"2026-08","tipo":"Gasto","persona":"Sergio","categoria":"Transporte y carburantes","concepto":"Gasolina","compartido":true,"importe":26.0,"obs":""},{"id":"seed_m_269","fecha":"2026-08-31","mes":"2026-08","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Agosto 2026","compartido":false,"importe":1332.14,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_270","fecha":"2026-08-31","mes":"2026-08","tipo":"Ingreso","persona":"Carmen","categoria":"Academia","concepto":"Ingreso Agosto 2026","compartido":false,"importe":1131.0,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_271","fecha":"2026-09-30","mes":"2026-09","tipo":"Ingreso","persona":"Sergio","categoria":"Nómina","concepto":"Ingreso Septiembre 2026","compartido":false,"importe":1329.56,"obs":"Migrado del sistema anterior (total mensual)"},{"id":"seed_m_272","fecha":"2026-09-30","mes":"2026-09","tipo":"Ingreso","persona":"Carmen","categoria":"Academia","concepto":"Ingreso Septiembre 2026","compartido":false,"importe":1131.0,"obs":"Migrado del sistema anterior (total mensual)"}],"liquidaciones":[{"id":"seed_l_001","fecha":"2026-03-31","mes":"2026-03","de":"Carmen","para":"Sergio","importe":245.73,"concepto":"Ajuste histórico migrado del sistema anterior (hoja 'Marzo2026', celda D28)"},{"id":"seed_l_002","fecha":"2026-04-30","mes":"2026-04","de":"Carmen","para":"Sergio","importe":154.0,"concepto":"Ajuste histórico migrado del sistema anterior (hoja 'Abril2026', celda D28)"},{"id":"seed_l_003","fecha":"2026-06-30","mes":"2026-06","de":"Carmen","para":"Sergio","importe":28.0,"concepto":"Ajuste histórico migrado del sistema anterior (hoja 'Junio2026', celda D28)"},{"id":"seed_l_004","fecha":"2026-07-31","mes":"2026-07","de":"Carmen","para":"Sergio","importe":35.0,"concepto":"Ajuste NETO migrado (hoja 'Julio2026' combinaba -60 y +25 en la misma fórmula)"},{"id":"seed_l_005","fecha":"2026-08-31","mes":"2026-08","de":"Carmen","para":"Sergio","importe":320.56,"concepto":"Ajuste histórico migrado del sistema anterior (hoja 'Agosto2026', celda D28)"}],"categoriasGasto":["Alquiler o Hipoteca","Alimentación","Compras","Internet","Luz","Gas","Agua","Telefonía","Seguros","Impuestos, tasas y multas","Prestamo Personal","Prestamo Dari","Prestamo Papas","Ocio","Gastos extraordinarios","Comunidad","Transporte y carburantes","Matrículas y cuotas","Ahorro","Otros"],"categoriasIngreso":{"Sergio":["Nómina","Horas y Pagas Extra","Becas y Subvenciones","Dinero Padres","Otros"],"Carmen":["Hora Matinal","Vesprada","Becas y Subvenciones","Academia","Dinero Padres","Otros"]}};
+
+const CATEGORIAS_GASTO = SEED_DATA.categoriasGasto;
+const CATEGORIAS_INGRESO = SEED_DATA.categoriasIngreso;
+const CAT_PALETTE = ["blue","orange","aqua","yellow","magenta","green","violet","red"];
+const CAT_TOP_N = 8;
+
+const fmtEUR = new Intl.NumberFormat('es-ES', {style:'currency', currency:'EUR'});
+const fmtEUR0 = new Intl.NumberFormat('es-ES', {style:'currency', currency:'EUR', maximumFractionDigits:0});
+const fmtPct = new Intl.NumberFormat('es-ES', {style:'percent', maximumFractionDigits:1});
+const fmtDate = (iso) => { const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
+const mesLabel = (mesStr) => { const [y,m] = mesStr.split('-').map(Number);
+  const s = new Date(y, m-1, 1).toLocaleDateString('es-ES', {month:'long', year:'numeric'});
+  return s.charAt(0).toUpperCase() + s.slice(1); };
+const todayISO = () => new Date().toISOString().slice(0,10);
+const mesOf = (fechaISO) => fechaISO.slice(0,7);
+const otherUser = (u) => u === 'Sergio' ? 'Carmen' : 'Sergio';
+
+const state = {
+  db: null,
+  user: null,
+  movimientos: [],
+  liquidaciones: [],
+  activeView: 'add',
+  resumenMes: null,
+  movsMes: null,
+};
+
+function $(sel){ return document.querySelector(sel); }
+function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+
+function showToast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._t); showToast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ================= Bootstrapping ================= */
+async function boot(){
+  let db = null;
+  try{ db = fs ? makeDb(fs) : null; }catch(e){ console.error('db init error', e); db = null; }
+
+  if(!db){
+    $('#screen-loading').style.display = 'none';
+    $('#screen-error').style.display = 'flex';
+    return;
+  }
+  state.db = db;
+
+  try{ await maybeSeed(db); }catch(e){ /* seeding is best-effort; app still works if it fails */ console.error('seed error', e); }
+
+  subscribeData(db);
+
+  const savedUser = safeLocalGet('finanzas_user');
+  $('#screen-loading').style.display = 'none';
+  if(savedUser === 'Sergio' || savedUser === 'Carmen'){
+    enterApp(savedUser);
+  } else {
+    $('#screen-gate').style.display = 'flex';
+  }
+}
+
+function safeLocalGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function safeLocalSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+$all('.gate-btn').forEach(b => b.addEventListener('click', () => {
+  const u = b.getAttribute('data-user');
+  safeLocalSet('finanzas_user', u);
+  enterApp(u);
+}));
+
+$('#btn-switch-user').addEventListener('click', () => {
+  safeLocalSet('finanzas_user', '');
+  state.user = null;
+  $('#screen-main').style.display = 'none';
+  $('#bottom-nav').style.display = 'none';
+  $('#screen-gate').style.display = 'flex';
+});
+
+function enterApp(user){
+  state.user = user;
+  $('#screen-gate').style.display = 'none';
+  $('#screen-main').style.display = 'block';
+  $('#bottom-nav').style.display = 'flex';
+  $('#user-name').textContent = user;
+  $('#user-dot').textContent = user[0];
+  $('#user-dot').className = 'user-dot ' + user;
+  $all('#seg-persona button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === user));
+  $('#in-fecha').value = todayISO();
+  $('#liq-fecha').value = todayISO();
+  $all('#seg-liq-de button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === user));
+  updateCategoriaOptions();
+  renderAll();
+}
+
+/* ================= DB: seed-once ================= */
+async function maybeSeed(db){
+  const markerRef = db.doc('meta/seed');
+  const marker = await markerRef.get();
+  if(marker.exists && marker.data() && marker.data().done) return;
+
+  const lockRef = db.doc('meta/seedLock');
+  const holder = 'seed-' + Math.random().toString(36).slice(2);
+  let acquired = false;
+  try{
+    await runTransaction(fs, async (tx) => {
+      const snap = await tx.get(lockRef.__ref);
+      const d = snap.exists() ? snap.data() : null;
+      const busy = d && typeof d.expiresAt === 'number' && d.expiresAt > Date.now();
+      if(busy){ acquired = false; return; }
+      tx.set(lockRef.__ref, { holder, expiresAt: Date.now() + 60000 });
+      acquired = true;
+    });
+  }catch(e){ console.error('seed lock error', e); return; }
+  if(!acquired) return;
+
+  const marker2 = await markerRef.get();
+  if(marker2.exists && marker2.data() && marker2.data().done) return;
+
+  const now = new Date().toISOString();
+  const chunks = (arr, size) => { const out=[]; for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size)); return out; };
+
+  for(const chunk of chunks(SEED_DATA.movimientos, 25)){
+    await Promise.all(chunk.map(m => db.doc('movimientos/' + m.id).set({
+      fecha:m.fecha, mes:m.mes, tipo:m.tipo, persona:m.persona, categoria:m.categoria,
+      concepto:m.concepto, compartido:m.compartido, importe:m.importe, obs:m.obs,
+      creadoPor:'seed', creadoEn:now
+    })));
+  }
+  for(const chunk of chunks(SEED_DATA.liquidaciones, 25)){
+    await Promise.all(chunk.map(l => db.doc('liquidaciones/' + l.id).set({
+      fecha:l.fecha, mes:l.mes, de:l.de, para:l.para, importe:l.importe, concepto:l.concepto,
+      creadoPor:'seed', creadoEn:now
+    })));
+  }
+  await markerRef.set({done:true, seededAt:now, count:SEED_DATA.movimientos.length});
+}
+
+/* ================= DB: live subscriptions ================= */
+function subscribeData(db){
+  db.collection('movimientos').onSnapshot(snap => {
+    state.movimientos = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('movimientos onSnapshot', err); });
+
+  db.collection('liquidaciones').onSnapshot(snap => {
+    state.liquidaciones = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('liquidaciones onSnapshot', err); });
+}
+
+/* ================= Derived data ================= */
+function allMonths(){
+  const s = new Set();
+  state.movimientos.forEach(m => s.add(m.mes));
+  state.liquidaciones.forEach(l => s.add(l.mes));
+  s.add(todayISO().slice(0,7));
+  return Array.from(s).sort();
+}
+
+function sumWhere(arr, pred){ return arr.reduce((s,x) => pred(x) ? s + x.importe : s, 0); }
+
+function monthStats(mes){
+  const M = state.movimientos, L = state.liquidaciones;
+  const ingS = sumWhere(M, m => m.mes===mes && m.tipo==='Ingreso' && m.persona==='Sergio');
+  const gasS = sumWhere(M, m => m.mes===mes && m.tipo==='Gasto' && m.persona==='Sergio');
+  const ingC = sumWhere(M, m => m.mes===mes && m.tipo==='Ingreso' && m.persona==='Carmen');
+  const gasC = sumWhere(M, m => m.mes===mes && m.tipo==='Gasto' && m.persona==='Carmen');
+  const gasCompS = sumWhere(M, m => m.mes===mes && m.tipo==='Gasto' && m.compartido && m.persona==='Sergio');
+  const gasCompC = sumWhere(M, m => m.mes===mes && m.tipo==='Gasto' && m.compartido && m.persona==='Carmen');
+  const movDelMes = (gasCompS - gasCompC) / 2; // + => Carmen debe a Sergio
+  const liqNetas = sumWhere(L, l => l.mes===mes && l.de==='Carmen' && l.para==='Sergio')
+                  - sumWhere(L, l => l.mes===mes && l.de==='Sergio' && l.para==='Carmen');
+  return {mes, ingS, gasS, ingC, gasC, gasCompS, gasCompC, movDelMes, liqNetas};
+}
+
+function fullTimeline(){
+  const months = allMonths();
+  let saldo = 0;
+  const rows = [];
+  for(const mes of months){
+    const st = monthStats(mes);
+    const saldoInicio = saldo;
+    const saldoFin = saldoInicio + st.movDelMes - st.liqNetas;
+    const ahorroS = st.ingS - st.gasS + (saldoFin - saldoInicio);
+    const ahorroC = st.ingC - st.gasC - (saldoFin - saldoInicio);
+    rows.push(Object.assign({}, st, {saldoInicio, saldoFin, ahorroS, ahorroC, ahorroConjunto: ahorroS+ahorroC}));
+    saldo = saldoFin;
+  }
+  return rows;
+}
+
+function catBreakdown(mes){
+  const totals = {};
+  CATEGORIAS_GASTO.forEach(c => totals[c] = 0);
+  state.movimientos.forEach(m => { if(m.mes===mes && m.tipo==='Gasto'){ totals[m.categoria] = (totals[m.categoria]||0) + m.importe; } });
+  const sorted = Object.entries(totals).sort((a,b) => b[1]-a[1]).filter(([,v]) => v > 0 || true);
+  return sorted;
+}
+
+/* ================= Rendering ================= */
+function renderAll(){
+  if(!state.user) return;
+  populateMonthSelectors();
+  renderRecent();
+  renderMovs();
+  renderResumen();
+  renderSaldo();
+}
+
+function populateMonthSelectors(){
+  const months = allMonths();
+  const withData = months.filter(m => state.movimientos.some(x=>x.mes===m) || state.liquidaciones.some(x=>x.mes===m));
+  const defaultMes = withData.length ? withData[withData.length-1] : months[months.length-1];
+  if(!state.resumenMes || !months.includes(state.resumenMes)) state.resumenMes = defaultMes;
+  if(!state.movsMes) state.movsMes = defaultMes;
+
+  const buildOptions = (sel, includeTodos) => {
+    const cur = sel.value;
+    sel.innerHTML = '';
+    if(includeTodos){ const o=document.createElement('option'); o.value='todos'; o.textContent='Todos los meses'; sel.appendChild(o); }
+    months.slice().reverse().forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=mesLabel(m); sel.appendChild(o); });
+  };
+  const rs = $('#resumen-mes-select'); if(!rs.dataset.built){ buildOptions(rs,false); rs.dataset.built='1'; rs.value = state.resumenMes; }
+  else if(rs.options.length !== months.length){ buildOptions(rs,false); rs.value = state.resumenMes; }
+
+  const ms = $('#movs-mes-select'); if(!ms.dataset.built){ buildOptions(ms,true); ms.dataset.built='1'; ms.value = state.movsMes; }
+  else if(ms.options.length !== months.length+1){ buildOptions(ms,true); ms.value = state.movsMes; }
+}
+
+$('#resumen-mes-select').addEventListener('change', e => { state.resumenMes = e.target.value; renderResumen(); });
+$('#movs-mes-select').addEventListener('change', e => { state.movsMes = e.target.value; renderMovs(); });
+
+function movRowHTML(m, showPersona){
+  const catIdx = CATEGORIAS_GASTO.indexOf(m.categoria);
+  const color = m.tipo==='Gasto' ? `var(--${CAT_PALETTE[catIdx % CAT_PALETTE.length] || 'neutral'})` : 'var(--c-ingreso)';
+  return `<div class="mov-row" data-id="${m.id}">
+    <div class="mov-cat-dot" style="background:${color}"></div>
+    <div class="mov-main">
+      <div class="mov-concepto">${escapeHTML(m.concepto || m.categoria)}</div>
+      <div class="mov-meta">${escapeHTML(m.categoria)} · ${fmtDate(m.fecha)}${showPersona ? ' · '+m.persona : ''}${m.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
+    </div>
+    <div class="mov-amount ${m.tipo==='Ingreso'?'ingreso':'gasto'}">${m.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(m.importe)}</div>
+    <button class="mov-del" data-id="${m.id}" title="Eliminar">🗑</button>
+  </div>`;
+}
+
+function escapeHTML(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderRecent(){
+  const sorted = state.movimientos.slice().sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
+  const recent = sorted.slice(0,5);
+  $('#recent-list').innerHTML = recent.length
+    ? recent.map(m => movRowHTML(m, true)).join('')
+    : '<div class="empty-hint">Aún no hay movimientos.</div>';
+}
+
+function renderMovs(){
+  const mes = state.movsMes;
+  const list = state.movimientos
+    .filter(m => mes === 'todos' || m.mes === mes)
+    .sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
+  $('#movs-list').innerHTML = list.length
+    ? list.map(m => movRowHTML(m, true)).join('')
+    : '<div class="empty-hint">No hay movimientos en este periodo.</div>';
+}
+
+function renderResumen(){
+  const timeline = fullTimeline();
+  if(!timeline.length) return;
+  const last = timeline[timeline.length-1];
+  const withActivity = timeline.filter(r => r.ingS+r.gasS+r.ingC+r.gasC > 0);
+  const ahorroTotal = timeline.reduce((s,r)=> s + r.ahorroConjunto, 0);
+  const ingresosTotal = timeline.reduce((s,r)=> s + r.ingS + r.ingC, 0);
+  const ahorroMedio = withActivity.length ? (withActivity.reduce((s,r)=>s+r.ahorroConjunto,0) / withActivity.length) : 0;
+
+  $('#kpi-ahorro-total').textContent = fmtEUR0.format(ahorroTotal);
+  $('#kpi-ahorro-medio').textContent = fmtEUR0.format(ahorroMedio);
+  $('#kpi-pct-ahorro').textContent = ingresosTotal ? fmtPct.format(ahorroTotal/ingresosTotal) : '—';
+  $('#kpi-saldo').textContent = fmtEUR0.format(Math.abs(last.saldoFin));
+
+  const row = timeline.find(r => r.mes === state.resumenMes) || last;
+  const tbody = $('#resumen-tbody');
+  const line = (label, ing, gas, ah, isTotal) => `<tr class="${isTotal?'total':''}">
+    <td>${label}</td><td class="col-ing">${fmtEUR.format(ing)}</td><td class="col-gas">${fmtEUR.format(gas)}</td><td class="col-ahorro">${fmtEUR.format(ah)}</td></tr>`;
+  tbody.innerHTML =
+    line('Sergio', row.ingS, row.gasS, row.ahorroS, false) +
+    line('Carmen', row.ingC, row.gasC, row.ahorroC, false) +
+    `<tr><td>Compartido</td><td class="col-ing">—</td><td class="col-gas">${fmtEUR.format(row.gasCompS+row.gasCompC)}</td><td class="col-ahorro">—</td></tr>` +
+    line('Conjunto', row.ingS+row.ingC, row.gasS+row.gasC, row.ahorroConjunto, true);
+
+  const cats = catBreakdown(state.resumenMes).filter(([,v]) => v !== 0 || true);
+  const withVals = cats.filter(([,v]) => v > 0);
+  const top = withVals.slice(0, CAT_TOP_N);
+  const restSum = withVals.slice(CAT_TOP_N).reduce((s,[,v])=>s+v,0);
+  const restCount = withVals.slice(CAT_TOP_N).length;
+  const maxVal = Math.max(1, ...top.map(([,v])=>v), restSum);
+  const catHTML = (name, val, colorVar) => `<div class="cat-row">
+      <div class="cat-swatch" style="background:${colorVar}"></div>
+      <div class="cat-name">${escapeHTML(name)}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,(val/maxVal)*100)}%;background:${colorVar}"></div></div>
+      <div class="cat-value">${fmtEUR.format(val)}</div>
+    </div>`;
+  let html = top.map(([name,val],i) => catHTML(name, val, `var(--${CAT_PALETTE[i]})`)).join('');
+  if(restCount > 0) html += catHTML(`Otros (${restCount})`, restSum, 'var(--neutral)');
+  $('#cat-breakdown').innerHTML = html || '<div class="empty-hint">Sin gastos este mes.</div>';
+}
+
+function renderSaldo(){
+  const timeline = fullTimeline();
+  const saldo = timeline.length ? timeline[timeline.length-1].saldoFin : 0;
+  const hero = $('#saldo-hero');
+  $('#saldo-figure').textContent = fmtEUR.format(Math.abs(saldo));
+  if(Math.abs(saldo) < 0.005){
+    $('#saldo-who').textContent = 'Estáis en paz 🎉';
+    hero.className = 'card saldo-hero even';
+  } else if(saldo > 0){
+    $('#saldo-who').textContent = 'Carmen debe a Sergio';
+    hero.className = 'card saldo-hero owe';
+  } else {
+    $('#saldo-who').textContent = 'Sergio debe a Carmen';
+    hero.className = 'card saldo-hero owe';
+  }
+
+  const list = state.liquidaciones.slice().sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
+  $('#liq-list').innerHTML = list.length ? list.map(l => `<div class="liq-row" data-id="${l.id}">
+      <div class="liq-main">
+        <div class="liq-arrow">${l.de} → ${l.para}</div>
+        <div class="liq-concepto">${escapeHTML(l.concepto || fmtDate(l.fecha))} · ${fmtDate(l.fecha)}</div>
+      </div>
+      <div class="liq-amount">${fmtEUR.format(l.importe)}</div>
+      <button class="mov-del" data-liq-id="${l.id}" title="Eliminar">🗑</button>
+    </div>`).join('') : '<div class="empty-hint">Sin liquidaciones todavía.</div>';
+}
+
+/* ================= Navigation ================= */
+$all('nav.bottom button').forEach(b => b.addEventListener('click', () => {
+  state.activeView = b.getAttribute('data-view');
+  $all('nav.bottom button').forEach(x => x.classList.toggle('active', x===b));
+  $all('.view').forEach(v => v.classList.toggle('active', v.id === 'view-'+state.activeView));
+}));
+$('#view-add').classList.add('active');
+
+/* ================= Add-movement form ================= */
+function updateCategoriaOptions(){
+  const tipo = $('#seg-tipo button.active').getAttribute('data-val');
+  const persona = $('#seg-persona button.active') ? $('#seg-persona button.active').getAttribute('data-val') : state.user;
+  const sel = $('#in-categoria');
+  const options = tipo === 'Gasto' ? CATEGORIAS_GASTO : (CATEGORIAS_INGRESO[persona] || CATEGORIAS_INGRESO['Sergio']);
+  const cur = sel.value;
+  sel.innerHTML = options.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  if(options.includes(cur)) sel.value = cur;
+  $('#row-compartido').style.display = tipo === 'Gasto' ? 'flex' : 'none';
+  if(tipo !== 'Gasto') $('#in-compartido').checked = false;
+}
+
+$all('#seg-tipo button').forEach(b => b.addEventListener('click', () => {
+  $all('#seg-tipo button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  updateCategoriaOptions();
+}));
+$all('#seg-persona button').forEach(b => b.addEventListener('click', () => {
+  $all('#seg-persona button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  updateCategoriaOptions();
+}));
+
+$('#form-add').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const tipo = $('#seg-tipo button.active').getAttribute('data-val');
+  const persona = $('#seg-persona button.active').getAttribute('data-val');
+  const importe = parseFloat($('#in-importe').value);
+  const fecha = $('#in-fecha').value;
+  const categoria = $('#in-categoria').value;
+  const concepto = $('#in-concepto').value.trim();
+  const compartido = tipo === 'Gasto' && $('#in-compartido').checked;
+  const obs = $('#in-obs').value.trim();
+
+  if(!(importe > 0) || !fecha || !categoria || !concepto){ showToast('Revisa los campos: falta algo.'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await state.db.collection('movimientos').add({
+      fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+      creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    showToast('Movimiento guardado ✓');
+    $('#in-importe').value = ''; $('#in-concepto').value = ''; $('#in-obs').value = '';
+    $('#in-compartido').checked = false;
+    $('#in-fecha').value = todayISO();
+    $('#in-importe').focus();
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar movimiento';
+  }
+});
+
+/* delete movement (tap-to-confirm) */
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('.mov-del[data-id]');
+  if(!del) return;
+  if(del.classList.contains('confirm')){
+    const id = del.getAttribute('data-id');
+    del.textContent = '…';
+    try{ await state.db.doc('movimientos/'+id).delete(); showToast('Movimiento eliminado'); }
+    catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
+  } else {
+    $all('.mov-del.confirm').forEach(x => { x.classList.remove('confirm'); x.textContent = '🗑'; });
+    del.classList.add('confirm'); del.textContent = 'Confirmar';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent='🗑'; } }, 3000);
+  }
+});
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('.mov-del[data-liq-id]');
+  if(!del) return;
+  if(del.classList.contains('confirm')){
+    const id = del.getAttribute('data-liq-id');
+    del.textContent = '…';
+    try{ await state.db.doc('liquidaciones/'+id).delete(); showToast('Liquidación eliminada'); }
+    catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
+  } else {
+    $all('.mov-del.confirm').forEach(x => { x.classList.remove('confirm'); x.textContent = '🗑'; });
+    del.classList.add('confirm'); del.textContent = 'Confirmar';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent='🗑'; } }, 3000);
+  }
+});
+
+/* ================= Liquidación modal ================= */
+$('#btn-add-liq').addEventListener('click', () => {
+  $all('#seg-liq-de button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === state.user));
+  $('#liq-fecha').value = todayISO();
+  $('#modal-liq').classList.add('show');
+});
+$('#close-modal-liq').addEventListener('click', () => $('#modal-liq').classList.remove('show'));
+$('#modal-liq').addEventListener('click', (e) => { if(e.target.id === 'modal-liq') $('#modal-liq').classList.remove('show'); });
+$all('#seg-liq-de button').forEach(b => b.addEventListener('click', () => {
+  $all('#seg-liq-de button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+}));
+
+$('#form-liq').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const de = $('#seg-liq-de button.active').getAttribute('data-val');
+  const para = otherUser(de);
+  const importe = parseFloat($('#liq-importe').value);
+  const fecha = $('#liq-fecha').value;
+  const concepto = $('#liq-concepto').value.trim();
+  if(!(importe > 0) || !fecha){ showToast('Revisa el importe y la fecha.'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await state.db.collection('liquidaciones').add({
+      fecha, mes: mesOf(fecha), de, para, importe: Math.round(importe*100)/100, concepto,
+      creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    showToast('Pago registrado ✓');
+    $('#liq-importe').value=''; $('#liq-concepto').value='';
+    $('#modal-liq').classList.remove('show');
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar pago';
+  }
+});
+
+boot();
+</script>
+</body>
+</html>
