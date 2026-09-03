@@ -798,8 +798,15 @@ function fullTimeline(){
     const st = monthStats(mes);
     const saldoInicio = saldo;
     const saldoFin = saldoInicio + st.movDelMes - st.liqNetas;
-    const ahorroS = st.ingS - st.gasS + (saldoFin - saldoInicio);
-    const ahorroC = st.ingC - st.gasC - (saldoFin - saldoInicio);
+    // El ahorro de cada uno se mueve por lo que cambia lo que se deben ESE mes
+    // (movDelMes: un gasto compartido nuevo), no por cuánto se liquide. Liquidar
+    // es solo mover el dinero para que cuadre una deuda que ya se contó cuando
+    // se hizo el gasto compartido -- para quien paga y quien cobra es un cambio
+    // neutro (a quien paga le baja el efectivo pero le baja la deuda lo mismo; a
+    // quien cobra le sube el efectivo pero le baja lo que le debían igual), así
+    // que una liquidación no debe sumar ni restar ahorro a nadie.
+    const ahorroS = st.ingS - st.gasS + st.movDelMes;
+    const ahorroC = st.ingC - st.gasC - st.movDelMes;
     rows.push(Object.assign({}, st, {saldoInicio, saldoFin, ahorroS, ahorroC, ahorroConjunto: ahorroS+ahorroC}));
     saldo = saldoFin;
   }
