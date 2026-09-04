@@ -221,6 +221,14 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 /* ---------- Previsión de gasto del mes ---------- */
 .prev-total{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--grid);}
 .prev-total strong{color:var(--ink);font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;}
+.comp-pers-row{padding:10px 0;border-bottom:1px solid var(--grid);}
+.comp-pers-row:last-child{border-bottom:none;}
+.comp-pers-row .cat-name{font-size:13.5px;font-weight:700;margin-bottom:6px;}
+.comp-pers-bar-line{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.comp-pers-tag{font-size:10px;font-weight:800;width:16px;line-height:16px;text-align:center;flex:none;color:#fff;border-radius:4px;}
+.comp-pers-tag.sergio{background:var(--blue);}
+.comp-pers-tag.carmen{background:var(--violet);}
+.comp-pers-val{font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--muted);width:56px;text-align:right;flex:none;}
 
 /* ---------- Ticket (foto/PDF) ---------- */
 .ticket-chip{display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--plane);}
@@ -246,6 +254,8 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .saldo-who{font-size:14px;color:var(--ink-soft);margin-top:6px;}
 .saldo-hero.owe{background:var(--tint-alerta);border-radius:var(--radius);}
 .saldo-hero.even{background:var(--tint-ingreso);border-radius:var(--radius);}
+.aviso-liquidar{font-size:12.5px;color:var(--ink-soft);margin-top:10px;font-weight:600;}
+.aviso-liquidar:empty{display:none;}
 .liq-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--grid);}
 .liq-row:last-child{border-bottom:none;}
 .liq-arrow{font-size:13px;color:var(--ink-soft);white-space:nowrap;font-weight:700;}
@@ -411,6 +421,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
             <div class="field"><label for="movs-fecha-hasta">Hasta</label><input type="date" id="movs-fecha-hasta"></div>
             <button type="button" class="link-btn" id="movs-fecha-limpiar" title="Quitar el rango de fechas">✕</button>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px;">
+            <div class="field"><label for="movs-importe-min">Importe mín. (€)</label><input type="number" inputmode="decimal" step="0.01" min="0" placeholder="0" id="movs-importe-min"></div>
+            <div class="field"><label for="movs-importe-max">Importe máx. (€)</label><input type="number" inputmode="decimal" step="0.01" min="0" placeholder="Sin máximo" id="movs-importe-max"></div>
+            <button type="button" class="link-btn" id="movs-importe-limpiar" title="Quitar el filtro de importe">✕</button>
+          </div>
           <div class="field" style="margin-bottom:10px;">
             <input type="text" id="movs-search" placeholder="Buscar por concepto u observación…">
           </div>
@@ -436,9 +451,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
       <section class="view" id="view-resumen">
         <div class="row-between" style="margin-bottom:12px;">
           <div class="section-title" style="margin-bottom:0;">Resumen</div>
-          <div style="display:flex;gap:14px;">
+          <div style="display:flex;gap:14px;flex-wrap:wrap;row-gap:6px;">
             <button type="button" class="link-btn" id="btn-export">⬇ Exportar</button>
             <button type="button" class="link-btn" id="btn-backup">🗄 Backup</button>
+            <button type="button" class="link-btn" id="btn-restaurar">♻️ Restaurar</button>
+            <input type="file" id="in-restaurar" accept="application/json,.json" hidden>
           </div>
         </div>
 
@@ -485,6 +502,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="prevision-gasto"></div>
         </div>
 
+        <div class="card" id="card-gastos-inusuales" style="display:none;">
+          <div class="section-title">Gastos que se salen de lo habitual</div>
+          <div id="gastos-inusuales"></div>
+        </div>
+
         <div class="card">
           <div class="section-title">Curiosidades del mes</div>
           <div id="curiosidades-mes"></div>
@@ -493,6 +515,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
         <div class="card">
           <div class="section-title">Comparativa interanual</div>
           <div id="comparativa-interanual"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Comparativa Sergio vs Carmen</div>
+          <div id="comparativa-personas"></div>
         </div>
 
         <div class="card">
@@ -532,6 +559,14 @@ nav.bottom button.active{color:var(--c-ahorro);}
           </div>
           <div id="metas-list"></div>
         </div>
+
+        <div class="card">
+          <div class="row-between" style="margin-bottom:10px;">
+            <div class="section-title" style="margin-bottom:0;">Resumen anual</div>
+            <select id="resumen-anio-select"></select>
+          </div>
+          <div id="resumen-anual"></div>
+        </div>
       </section>
 
       <!-- ===================== SALDO ===================== -->
@@ -540,6 +575,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div class="muted">SALDO PENDIENTE</div>
           <div class="saldo-figure" id="saldo-figure">—</div>
           <div class="saldo-who" id="saldo-who"></div>
+          <div class="aviso-liquidar" id="aviso-liquidar"></div>
         </div>
         <button class="btn btn-primary" id="btn-add-liq">Registrar pago</button>
         <div class="card">
@@ -694,6 +730,14 @@ nav.bottom button.active{color:var(--c-ahorro);}
       </form>
     </div>
   </div>
+
+  <div class="modal-backdrop" id="modal-restaurar">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Restaurar copia de seguridad</h3><button id="close-modal-restaurar">✕</button></div>
+      <div id="restaurar-resumen"></div>
+      <button type="button" class="btn btn-primary" id="btn-restaurar-confirmar" style="margin-top:6px;">Restaurar estos datos</button>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -813,8 +857,9 @@ const state = {
   liquidaciones: [],
   activeView: 'add',
   resumenMes: null,
+  resumenAnio: null,
   movsMes: null,
-  movsFilters: { q: '', categoria: 'todas', persona: 'todos', ticket: 'todos', fechaDesde: '', fechaHasta: '' },
+  movsFilters: { q: '', categoria: 'todas', persona: 'todos', ticket: 'todos', fechaDesde: '', fechaHasta: '', importeMin: '', importeMax: '' },
   recurrentes: [],
   presupuestos: {},
   metas: [],
@@ -1021,6 +1066,11 @@ function subscribeData(db){
 }
 
 /* ================= Derived data ================= */
+function allYears(){
+  const s = new Set(allMonths().map(m => m.slice(0,4)));
+  return Array.from(s).sort();
+}
+
 function allMonths(){
   const s = new Set();
   state.movimientos.forEach(m => s.add(m.mes));
@@ -1157,6 +1207,70 @@ function previsionGastoMes(mes){
   return {mes, categorias, totalActual, totalPrevisto};
 }
 
+/* Gastos del mes cuyo importe se sale mucho de lo habitual para su categoría:
+   comparamos cada gasto contra la media histórica POR MOVIMIENTO de esa
+   categoría (solo meses anteriores, para no dejar que el propio gasto -- ni
+   sus "hermanos" del mismo mes -- infle su propia referencia), y lo marcamos
+   si es UMBRAL_GASTO_INUSUAL veces esa media o más. Categorías con poco
+   histórico (menos de MIN_HISTORICO_GASTO_INUSUAL gastos previos) se dejan
+   fuera para no avisar con una referencia poco fiable. */
+const UMBRAL_GASTO_INUSUAL = 2;
+const MIN_HISTORICO_GASTO_INUSUAL = 3;
+function gastosInusuales(mes){
+  const gastosDelMes = state.movimientos.filter(m => m.mes === mes && m.tipo === 'Gasto');
+  return gastosDelMes.map(m => {
+    const historico = state.movimientos.filter(x => x.tipo === 'Gasto' && x.categoria === m.categoria && x.mes < mes);
+    if(historico.length < MIN_HISTORICO_GASTO_INUSUAL) return null;
+    const promedio = historico.reduce((s,x) => s + x.importe, 0) / historico.length;
+    if(promedio <= 0.004) return null;
+    const veces = m.importe / promedio;
+    if(veces < UMBRAL_GASTO_INUSUAL) return null;
+    return {mov: m, promedio, veces};
+  }).filter(Boolean).sort((a,b) => b.veces - a.veces);
+}
+
+/* Desglose de gasto por categoría, pero de una sola persona (a diferencia de
+   catBreakdown, que suma a Sergio y Carmen juntos) -- base de la comparativa. */
+function catBreakdownPersona(mes, persona){
+  const totals = {};
+  CATEGORIAS_GASTO.forEach(c => totals[c] = 0);
+  state.movimientos.forEach(m => { if(m.mes===mes && m.tipo==='Gasto' && m.persona===persona){ totals[m.categoria] = (totals[m.categoria]||0) + m.importe; } });
+  return totals;
+}
+
+/* Comparativa Sergio vs Carmen del mes: gasto por categoría de cada uno, para
+   ver en qué se va el dinero de cada persona, no solo el total conjunto. */
+function comparativaPersonasCategorias(mes){
+  const s = catBreakdownPersona(mes, 'Sergio');
+  const c = catBreakdownPersona(mes, 'Carmen');
+  const categorias = CATEGORIAS_GASTO
+    .filter(cat => (s[cat]||0) > 0.004 || (c[cat]||0) > 0.004)
+    .map(cat => ({categoria: cat, sergio: s[cat]||0, carmen: c[cat]||0}))
+    .sort((a,b) => (b.sergio+b.carmen) - (a.sergio+a.carmen));
+  const totalS = categorias.reduce((sum,x) => sum+x.sergio, 0);
+  const totalC = categorias.reduce((sum,x) => sum+x.carmen, 0);
+  return {mes, categorias, totalS, totalC};
+}
+
+/* Totales agregados de todo un año (no solo un mes), con desglose por
+   categoría, para poder ver el conjunto del año en lugar de mes a mes. */
+function resumenAnual(anio){
+  const mesesConDatos = allMonths().filter(m => m.slice(0,4) === anio).length;
+  const filas = fullTimeline().filter(r => r.mes.slice(0,4) === anio);
+  const ingS = filas.reduce((s,r) => s+r.ingS, 0);
+  const gasS = filas.reduce((s,r) => s+r.gasS, 0);
+  const ingC = filas.reduce((s,r) => s+r.ingC, 0);
+  const gasC = filas.reduce((s,r) => s+r.gasC, 0);
+  const ahorroConjunto = filas.reduce((s,r) => s+r.ahorroConjunto, 0);
+
+  const totalsCat = {};
+  CATEGORIAS_GASTO.forEach(c => totalsCat[c] = 0);
+  state.movimientos.forEach(m => { if(m.tipo==='Gasto' && m.mes.slice(0,4)===anio){ totalsCat[m.categoria] = (totalsCat[m.categoria]||0) + m.importe; } });
+  const categorias = Object.entries(totalsCat).filter(([,v]) => v > 0.004).sort((a,b) => b[1]-a[1]);
+
+  return {anio, mesesConDatos, ingresoTotal: ingS+ingC, gastoTotal: gasS+gasC, ahorroConjunto, categorias};
+}
+
 /* Presupuestos que están al 70% o más de su límite este mes (o ya superados),
    para avisar sin tener que entrar a mirar la lista completa de Presupuestos. */
 function presupuestosEnRiesgo(mes){
@@ -1213,9 +1327,20 @@ function populateMonthSelectors(){
 
   const ms = $('#movs-mes-select'); if(!ms.dataset.built){ buildOptions(ms,true); ms.dataset.built='1'; ms.value = state.movsMes; }
   else if(ms.options.length !== months.length+1){ buildOptions(ms,true); ms.value = state.movsMes; }
+
+  const years = allYears();
+  if(!state.resumenAnio || !years.includes(state.resumenAnio)) state.resumenAnio = years[years.length-1];
+  const ys = $('#resumen-anio-select');
+  if(!ys.dataset.built || ys.options.length !== years.length){
+    ys.innerHTML = '';
+    years.slice().reverse().forEach(a => { const o=document.createElement('option'); o.value=a; o.textContent=a; ys.appendChild(o); });
+    ys.dataset.built = '1';
+    ys.value = state.resumenAnio;
+  }
 }
 
 $('#resumen-mes-select').addEventListener('change', e => { state.resumenMes = e.target.value; renderResumen(); });
+$('#resumen-anio-select').addEventListener('change', e => { state.resumenAnio = e.target.value; renderResumen(); });
 function limpiarRangoFechasMovs(){
   state.movsFilters.fechaDesde = ''; state.movsFilters.fechaHasta = '';
   $('#movs-fecha-desde').value = ''; $('#movs-fecha-hasta').value = '';
@@ -1232,6 +1357,14 @@ $('#movs-fecha-hasta').addEventListener('change', e => {
   renderMovs();
 });
 $('#movs-fecha-limpiar').addEventListener('click', () => { limpiarRangoFechasMovs(); renderMovs(); });
+
+function limpiarImporteMovs(){
+  state.movsFilters.importeMin = ''; state.movsFilters.importeMax = '';
+  $('#movs-importe-min').value = ''; $('#movs-importe-max').value = '';
+}
+$('#movs-importe-min').addEventListener('input', e => { state.movsFilters.importeMin = e.target.value; renderMovs(); });
+$('#movs-importe-max').addEventListener('input', e => { state.movsFilters.importeMax = e.target.value; renderMovs(); });
+$('#movs-importe-limpiar').addEventListener('click', () => { limpiarImporteMovs(); renderMovs(); });
 
 function movRowHTML(m, showPersona){
   const catIdx = CATEGORIAS_GASTO.indexOf(m.categoria);
@@ -1375,7 +1508,7 @@ function renderRecent(){
 
 function renderMovs(){
   const mes = state.movsMes;
-  const {q, categoria, persona, ticket, fechaDesde, fechaHasta} = state.movsFilters;
+  const {q, categoria, persona, ticket, fechaDesde, fechaHasta, importeMin, importeMax} = state.movsFilters;
   const qLower = q.trim().toLowerCase();
   const list = state.movimientos
     .filter(m => mes === 'todos' || m.mes === mes)
@@ -1384,6 +1517,8 @@ function renderMovs(){
     .filter(m => ticket === 'todos' || (ticket === 'con' ? !!m.ticketData : !m.ticketData))
     .filter(m => !fechaDesde || m.fecha >= fechaDesde)
     .filter(m => !fechaHasta || m.fecha <= fechaHasta)
+    .filter(m => importeMin === '' || m.importe >= Number(importeMin))
+    .filter(m => importeMax === '' || m.importe <= Number(importeMax))
     .filter(m => !qLower || (m.concepto||'').toLowerCase().includes(qLower) || (m.obs||'').toLowerCase().includes(qLower))
     .sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
   $('#movs-filter-conticket').classList.toggle('active', ticket === 'con');
@@ -1391,6 +1526,7 @@ function renderMovs(){
   const emptyMsg = ticket === 'sin' ? 'No hay movimientos sin ticket que coincidan — ¡todo tiene su foto o PDF! 🎉'
     : ticket === 'con' ? 'No hay movimientos con ticket que coincidan todavía.'
     : (fechaDesde || fechaHasta) ? 'No hay movimientos en ese rango de fechas.'
+    : (importeMin !== '' || importeMax !== '') ? 'No hay movimientos en ese rango de importes.'
     : 'No hay movimientos que coincidan.';
   $('#movs-list').innerHTML = list.length
     ? list.map(m => movRowHTML(m, true)).join('')
@@ -1456,8 +1592,12 @@ function renderResumen(){
     line('Conjunto', row.ingS+row.ingC, row.gasS+row.gasC, row.ahorroConjunto, true);
 
   $('#prevision-gasto').innerHTML = previsionHTML(previsionGastoMes(state.resumenMes));
+  const inusuales = gastosInusuales(state.resumenMes);
+  $('#card-gastos-inusuales').style.display = inusuales.length ? 'block' : 'none';
+  if(inusuales.length) $('#gastos-inusuales').innerHTML = gastosInusualesHTML(inusuales);
   $('#curiosidades-mes').innerHTML = curiosidadesHTML(curiosidadesMes(state.resumenMes));
   $('#comparativa-interanual').innerHTML = comparativaHTML(comparativaInteranual(state.resumenMes, timeline));
+  $('#comparativa-personas').innerHTML = comparativaPersonasHTML(comparativaPersonasCategorias(state.resumenMes));
 
   const cats = catBreakdown(state.resumenMes).filter(([,v]) => v !== 0 || true);
   const withVals = cats.filter(([,v]) => v > 0);
@@ -1498,6 +1638,8 @@ function renderResumen(){
   $('#metas-list').innerHTML = metasSorted.length
     ? metasSorted.map(m => metaRowHTML(m, progresoMeta(m, timeline), proyeccionMeta(m, timeline))).join('')
     : '<div class="empty-hint">Aún no tienes metas de ahorro. Pulsa "➕ Nueva" para crear una.</div>';
+
+  $('#resumen-anual').innerHTML = resumenAnualHTML(resumenAnual(state.resumenAnio));
 }
 
 function presupuestosRiesgoHTML(riesgos){
@@ -1570,6 +1712,59 @@ function previsionHTML(prev){
       <div>Gastado hasta ahora: <strong>${fmtEUR.format(prev.totalActual)}</strong></div>
       <div>Previsión a fin de mes: <strong>${fmtEUR.format(prev.totalPrevisto)}</strong></div>
     </div>${rows}`;
+}
+
+function gastoInusualRowHTML(g){
+  const m = g.mov;
+  return `<div class="rec-row">
+      <div class="rec-main">
+        <div class="rec-concepto">${catIcon(m.categoria)} ${escapeHTML(m.concepto || m.categoria)}</div>
+        <div class="rec-meta">${escapeHTML(m.categoria)} · ${fmtDate(m.fecha)} · ${m.persona} · habitual ~${fmtEUR0.format(g.promedio)}</div>
+      </div>
+      <div class="rec-amount" style="color:var(--c-alerta);">${fmtEUR.format(m.importe)}</div>
+    </div>`;
+}
+function gastosInusualesHTML(lista){
+  if(!lista.length) return '';
+  return lista.map(gastoInusualRowHTML).join('');
+}
+
+function comparativaPersonaRowHTML(c){
+  const max = Math.max(c.sergio, c.carmen, 0.01);
+  const pctS = c.sergio > 0.004 ? Math.max(4, (c.sergio/max)*100) : 0;
+  const pctC = c.carmen > 0.004 ? Math.max(4, (c.carmen/max)*100) : 0;
+  return `<div class="comp-pers-row">
+      <div class="cat-name">${catIcon(c.categoria)} ${escapeHTML(c.categoria)}</div>
+      <div class="comp-pers-bar-line"><span class="comp-pers-tag sergio">S</span><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pctS}%;background:var(--blue)"></div></div><span class="comp-pers-val">${fmtEUR0.format(c.sergio)}</span></div>
+      <div class="comp-pers-bar-line"><span class="comp-pers-tag carmen">C</span><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pctC}%;background:var(--violet)"></div></div><span class="comp-pers-val">${fmtEUR0.format(c.carmen)}</span></div>
+    </div>`;
+}
+function comparativaPersonasHTML(comp){
+  if(!comp.categorias.length) return '<div class="empty-hint">Aún no hay gastos este mes para comparar.</div>';
+  const rows = comp.categorias.map(comparativaPersonaRowHTML).join('');
+  return `<div class="prev-total">
+      <div><span class="comp-pers-tag sergio">S</span> Sergio: <strong>${fmtEUR.format(comp.totalS)}</strong></div>
+      <div><span class="comp-pers-tag carmen">C</span> Carmen: <strong>${fmtEUR.format(comp.totalC)}</strong></div>
+    </div>${rows}`;
+}
+
+function resumenAnualCatRowHTML(categoria, valor, max){
+  const pct = max > 0.004 ? valor/max : 0;
+  return `<div class="cat-row">
+      <div class="cat-name" style="flex:0 0 42%;">${catIcon(categoria)} ${escapeHTML(categoria)}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,pct*100)}%;background:var(--orange)"></div></div>
+      <div class="cat-value" style="width:auto;min-width:90px;">${fmtEUR0.format(valor)}</div>
+    </div>`;
+}
+function resumenAnualHTML(r){
+  if(!r.mesesConDatos) return '<div class="empty-hint">No hay datos para este año.</div>';
+  const max = r.categorias.length ? r.categorias[0][1] : 0;
+  const catRows = r.categorias.map(([cat,val]) => resumenAnualCatRowHTML(cat, val, max)).join('');
+  return `<div class="prev-total">
+      <div>Ingresos: <strong>${fmtEUR.format(r.ingresoTotal)}</strong></div>
+      <div>Gastos: <strong>${fmtEUR.format(r.gastoTotal)}</strong></div>
+      <div>Ahorro: <strong>${fmtEUR.format(r.ahorroConjunto)}</strong></div>
+    </div>${catRows}`;
 }
 
 /* ================= Mini gráficos (SVG a mano, sin librerías) ================= */
@@ -1892,6 +2087,15 @@ function metaRowHTML(meta, progreso, proyeccion){
   </div>`;
 }
 
+/* A partir de qué importe pendiente merece la pena avisar de que quizás toca
+   liquidar. Es un valor fijo elegido por Claude -- si no acierta con lo que
+   a Sergio y Carmen les parece "mucho", es fácil de ajustar. */
+const UMBRAL_AVISO_LIQUIDAR = 200;
+function avisoLiquidarHTML(saldo){
+  if(Math.abs(saldo) < UMBRAL_AVISO_LIQUIDAR) return '';
+  return '💡 Ya es una cantidad considerable — podría ser buen momento para liquidar.';
+}
+
 function renderSaldo(){
   const timeline = fullTimeline();
   const saldo = timeline.length ? timeline[timeline.length-1].saldoFin : 0;
@@ -1907,6 +2111,7 @@ function renderSaldo(){
     $('#saldo-who').textContent = 'Sergio debe a Carmen';
     hero.className = 'card saldo-hero owe';
   }
+  $('#aviso-liquidar').innerHTML = avisoLiquidarHTML(saldo);
 
   const list = state.liquidaciones.slice().sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
   $('#liq-list').innerHTML = list.length ? list.map(l => `<div class="liq-row" data-id="${l.id}">
@@ -2527,6 +2732,89 @@ $('#btn-backup').addEventListener('click', () => {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('Copia de seguridad descargada ✓');
+});
+
+/* ================= Restaurar desde copia de seguridad (JSON) =================
+   Restauración "segura": AÑADE o ACTUALIZA (por id) lo que trae el archivo,
+   pero nunca borra nada de lo que ya hay ahora -- para poder recuperar datos
+   sin arriesgarse a perder algo más reciente que la propia copia. */
+function validarBackup(obj){
+  if(!obj || typeof obj !== 'object') return 'El archivo no tiene el formato esperado.';
+  for(const campo of ['movimientos', 'liquidaciones', 'recurrentes', 'metas']){
+    if(!Array.isArray(obj[campo])) return `El archivo no tiene un campo "${campo}" válido -- ¿es una copia de seguridad de esta app?`;
+  }
+  if(!obj.presupuestos || typeof obj.presupuestos !== 'object' || Array.isArray(obj.presupuestos)){
+    return 'El archivo no tiene un campo "presupuestos" válido -- ¿es una copia de seguridad de esta app?';
+  }
+  return null;
+}
+
+function resumenRestaurarHTML(backup){
+  const conId = arr => arr.filter(x => x && typeof x.id === 'string').length;
+  const items = [
+    [conId(backup.movimientos), 'movimientos'],
+    [conId(backup.liquidaciones), 'liquidaciones'],
+    [conId(backup.recurrentes), 'recurrentes'],
+    [Object.keys(backup.presupuestos).length, 'presupuestos'],
+    [conId(backup.metas), 'metas de ahorro'],
+  ];
+  const filas = items.map(([n,label]) => `<div class="rec-row"><div class="rec-main"><div class="rec-concepto">${n} ${escapeHTML(label)}</div></div></div>`).join('');
+  const fecha = backup.exportadoEn ? ' de la copia del ' + fmtDate(String(backup.exportadoEn).slice(0,10)) : '';
+  return `<div class="empty-hint" style="text-align:left;padding:0 0 12px;">Se restaurarán estos datos${fecha}. Esto no borra nada de lo que ya tienes ahora -- solo añade o actualiza con lo que había en la copia.</div>${filas}`;
+}
+
+let pendingRestore = null;
+$('#btn-restaurar').addEventListener('click', () => $('#in-restaurar').click());
+$('#in-restaurar').addEventListener('change', () => {
+  const file = $('#in-restaurar').files[0];
+  $('#in-restaurar').value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try{ parsed = JSON.parse(reader.result); }
+    catch(err){ showToast('El archivo no es un JSON válido.'); return; }
+    const error = validarBackup(parsed);
+    if(error){ showToast(error); return; }
+    pendingRestore = parsed;
+    $('#restaurar-resumen').innerHTML = resumenRestaurarHTML(parsed);
+    $('#modal-restaurar').classList.add('show');
+  };
+  reader.onerror = () => showToast('No se pudo leer el archivo.');
+  reader.readAsText(file);
+});
+$('#close-modal-restaurar').addEventListener('click', () => { $('#modal-restaurar').classList.remove('show'); pendingRestore = null; });
+$('#modal-restaurar').addEventListener('click', (e) => { if(e.target.id === 'modal-restaurar'){ $('#modal-restaurar').classList.remove('show'); pendingRestore = null; } });
+
+$('#btn-restaurar-confirmar').addEventListener('click', async () => {
+  if(!pendingRestore) return;
+  const btn = $('#btn-restaurar-confirmar');
+  btn.disabled = true; btn.textContent = 'Restaurando…';
+  try{
+    const backup = pendingRestore;
+    const escribirConId = (coleccion, arr) => Promise.all(
+      arr.filter(x => x && typeof x.id === 'string').map(x => {
+        const datos = Object.assign({}, x);
+        delete datos.id;
+        return state.db.doc(coleccion + '/' + x.id).set(datos);
+      })
+    );
+    await Promise.all([
+      escribirConId('movimientos', backup.movimientos),
+      escribirConId('liquidaciones', backup.liquidaciones),
+      escribirConId('recurrentes', backup.recurrentes),
+      escribirConId('metas', backup.metas),
+      Promise.all(Object.entries(backup.presupuestos).map(([categoria, val]) => state.db.doc('presupuestos/' + categoria).set(val))),
+    ]);
+    showToast('Datos restaurados ✓');
+    $('#modal-restaurar').classList.remove('show');
+    pendingRestore = null;
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo restaurar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Restaurar estos datos';
+  }
 });
 
 boot();
