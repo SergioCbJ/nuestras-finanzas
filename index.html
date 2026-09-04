@@ -157,6 +157,8 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .meta-nombre.conseguida{text-decoration:line-through;color:var(--muted);}
 .meta-pct{font-size:12px;color:var(--muted);font-weight:700;}
 .meta-amounts{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
+.meta-proyeccion{font-size:12px;color:var(--c-ahorro);margin-top:6px;}
+.meta-proyeccion-muted{color:var(--muted);}
 .meta-actions{display:flex;gap:14px;margin-top:6px;}
 .meta-actions button{background:none;border:none;padding:0;font-size:12.5px;color:var(--c-ahorro);font-weight:700;cursor:pointer;}
 .meta-actions button.danger{color:var(--c-alerta);}
@@ -330,6 +332,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="recurrentes-list"></div>
         </div>
 
+        <div class="card" id="card-gastos-fijos-pendientes" style="display:none;">
+          <div class="section-title">¿Te falta algo por registrar?</div>
+          <div id="gastos-fijos-pendientes-list"></div>
+        </div>
+
         <div class="card">
           <div class="section-title">Añadir movimiento</div>
           <form id="form-add">
@@ -398,6 +405,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
         <div class="card">
           <div class="month-select-row">
             <select id="movs-mes-select"></select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px;">
+            <div class="field"><label for="movs-fecha-desde">Desde</label><input type="date" id="movs-fecha-desde"></div>
+            <div class="field"><label for="movs-fecha-hasta">Hasta</label><input type="date" id="movs-fecha-hasta"></div>
+            <button type="button" class="link-btn" id="movs-fecha-limpiar" title="Quitar el rango de fechas">✕</button>
           </div>
           <div class="field" style="margin-bottom:10px;">
             <input type="text" id="movs-search" placeholder="Buscar por concepto u observación…">
@@ -498,6 +510,11 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div class="section-title">Ingresos por categoría — evolución</div>
           <div class="cat-chip-picker" id="ing-chart-picker"></div>
           <div id="ing-chart"></div>
+        </div>
+
+        <div class="card" id="card-presupuestos-riesgo" style="display:none;">
+          <div class="section-title">Presupuestos a vigilar este mes</div>
+          <div id="presupuestos-riesgo"></div>
         </div>
 
         <div class="card">
@@ -797,7 +814,7 @@ const state = {
   activeView: 'add',
   resumenMes: null,
   movsMes: null,
-  movsFilters: { q: '', categoria: 'todas', persona: 'todos', ticket: 'todos' },
+  movsFilters: { q: '', categoria: 'todas', persona: 'todos', ticket: 'todos', fechaDesde: '', fechaHasta: '' },
   recurrentes: [],
   presupuestos: {},
   metas: [],
@@ -1140,6 +1157,32 @@ function previsionGastoMes(mes){
   return {mes, categorias, totalActual, totalPrevisto};
 }
 
+/* Presupuestos que están al 70% o más de su límite este mes (o ya superados),
+   para avisar sin tener que entrar a mirar la lista completa de Presupuestos. */
+function presupuestosEnRiesgo(mes){
+  const gastoMap = Object.fromEntries(catBreakdown(mes));
+  return Object.entries(state.presupuestos)
+    .filter(([,v]) => v && v.limite > 0)
+    .map(([categoria,p]) => {
+      const gastado = gastoMap[categoria] || 0;
+      const pct = p.limite > 0 ? gastado / p.limite : 0;
+      return {categoria, limite: p.limite, gastado, pct};
+    })
+    .filter(r => r.pct >= 0.7)
+    .sort((a,b) => b.pct - a.pct);
+}
+
+/* Categorías de gasto que, a juzgar por el histórico, "tocan" este mes (misma lógica
+   que la previsión de gasto) pero todavía no se han registrado -- excluyendo las que
+   ya tienen un recurrente activo, para no duplicar el aviso. */
+function categoriasConRecurrenteActivo(){
+  return new Set(state.recurrentes.filter(r => r.activo !== false).map(r => r.categoria));
+}
+function gastosFijosPendientes(mes){
+  const yaTrackeadas = categoriasConRecurrenteActivo();
+  return previsionGastoMes(mes).categorias.filter(c => c.due && c.actual < 0.004 && !yaTrackeadas.has(c.categoria));
+}
+
 /* ================= Rendering ================= */
 function renderAll(){
   if(!state.user) return;
@@ -1149,6 +1192,7 @@ function renderAll(){
   renderResumen();
   renderSaldo();
   renderRecurrentes();
+  renderGastosFijosPendientes();
 }
 
 function populateMonthSelectors(){
@@ -1172,7 +1216,22 @@ function populateMonthSelectors(){
 }
 
 $('#resumen-mes-select').addEventListener('change', e => { state.resumenMes = e.target.value; renderResumen(); });
-$('#movs-mes-select').addEventListener('change', e => { state.movsMes = e.target.value; renderMovs(); });
+function limpiarRangoFechasMovs(){
+  state.movsFilters.fechaDesde = ''; state.movsFilters.fechaHasta = '';
+  $('#movs-fecha-desde').value = ''; $('#movs-fecha-hasta').value = '';
+}
+$('#movs-mes-select').addEventListener('change', e => { state.movsMes = e.target.value; limpiarRangoFechasMovs(); renderMovs(); });
+$('#movs-fecha-desde').addEventListener('change', e => {
+  state.movsFilters.fechaDesde = e.target.value;
+  if(e.target.value){ state.movsMes = 'todos'; $('#movs-mes-select').value = 'todos'; }
+  renderMovs();
+});
+$('#movs-fecha-hasta').addEventListener('change', e => {
+  state.movsFilters.fechaHasta = e.target.value;
+  if(e.target.value){ state.movsMes = 'todos'; $('#movs-mes-select').value = 'todos'; }
+  renderMovs();
+});
+$('#movs-fecha-limpiar').addEventListener('click', () => { limpiarRangoFechasMovs(); renderMovs(); });
 
 function movRowHTML(m, showPersona){
   const catIdx = CATEGORIAS_GASTO.indexOf(m.categoria);
@@ -1316,19 +1375,22 @@ function renderRecent(){
 
 function renderMovs(){
   const mes = state.movsMes;
-  const {q, categoria, persona, ticket} = state.movsFilters;
+  const {q, categoria, persona, ticket, fechaDesde, fechaHasta} = state.movsFilters;
   const qLower = q.trim().toLowerCase();
   const list = state.movimientos
     .filter(m => mes === 'todos' || m.mes === mes)
     .filter(m => categoria === 'todas' || m.categoria === categoria)
     .filter(m => persona === 'todos' || m.persona === persona)
     .filter(m => ticket === 'todos' || (ticket === 'con' ? !!m.ticketData : !m.ticketData))
+    .filter(m => !fechaDesde || m.fecha >= fechaDesde)
+    .filter(m => !fechaHasta || m.fecha <= fechaHasta)
     .filter(m => !qLower || (m.concepto||'').toLowerCase().includes(qLower) || (m.obs||'').toLowerCase().includes(qLower))
     .sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
   $('#movs-filter-conticket').classList.toggle('active', ticket === 'con');
   $('#movs-filter-sinticket').classList.toggle('active', ticket === 'sin');
   const emptyMsg = ticket === 'sin' ? 'No hay movimientos sin ticket que coincidan — ¡todo tiene su foto o PDF! 🎉'
     : ticket === 'con' ? 'No hay movimientos con ticket que coincidan todavía.'
+    : (fechaDesde || fechaHasta) ? 'No hay movimientos en ese rango de fechas.'
     : 'No hay movimientos que coincidan.';
   $('#movs-list').innerHTML = list.length
     ? list.map(m => movRowHTML(m, true)).join('')
@@ -1426,12 +1488,21 @@ function renderResumen(){
       .map(([categoria, p]) => presupuestoRowHTML(categoria, p.limite, gastoMap[categoria] || 0))
       .join('');
   }
+  $('#card-presupuestos-riesgo').style.display = presEntries.length ? 'block' : 'none';
+  if(presEntries.length){
+    $('#presupuestos-riesgo').innerHTML = presupuestosRiesgoHTML(presupuestosEnRiesgo(state.resumenMes));
+  }
 
   const metasSorted = state.metas.slice().sort((a,b) =>
     (a.conseguida?1:0) - (b.conseguida?1:0) || (b.creadoEn||'').localeCompare(a.creadoEn||''));
   $('#metas-list').innerHTML = metasSorted.length
-    ? metasSorted.map(m => metaRowHTML(m, progresoMeta(m, timeline))).join('')
+    ? metasSorted.map(m => metaRowHTML(m, progresoMeta(m, timeline), proyeccionMeta(m, timeline))).join('')
     : '<div class="empty-hint">Aún no tienes metas de ahorro. Pulsa "➕ Nueva" para crear una.</div>';
+}
+
+function presupuestosRiesgoHTML(riesgos){
+  if(!riesgos.length) return '<div class="empty-hint">Ningún presupuesto cerca de su límite este mes. Todo en orden ✓</div>';
+  return riesgos.map(r => presupuestoRowHTML(r.categoria, r.limite, r.gastado)).join('');
 }
 
 function presupuestoRowHTML(categoria, limite, gastado){
@@ -1766,7 +1837,39 @@ function progresoMeta(meta, timeline){
     .filter(r => r.mes >= meta.mesCreacion)
     .reduce((s,r) => s + r.ahorroConjunto, 0);
 }
-function metaRowHTML(meta, progreso){
+
+/* Estimación de cuándo se alcanzará una meta de ahorro, a partir del ritmo medio de
+   ahorro conjunto de los últimos PROYECCION_MESES_RITMO meses. Si al ritmo actual no
+   se avanza (o se retrocede), no se puede proyectar una fecha con sentido. */
+const PROYECCION_MESES_RITMO = 6;
+function proyeccionMeta(meta, timeline){
+  const progreso = progresoMeta(meta, timeline);
+  const restante = meta.objetivo - progreso;
+  if(meta.conseguida || restante <= 0.004 || !timeline.length) return null;
+  const recientes = timeline.slice(-PROYECCION_MESES_RITMO);
+  const ritmo = recientes.length ? recientes.reduce((s,r) => s + r.ahorroConjunto, 0) / recientes.length : 0;
+  if(ritmo <= 0.004) return {alcanzable: false};
+  const mesesRestantes = Math.max(1, Math.ceil(restante / ritmo));
+  const mesEstimado = mesShift(timeline[timeline.length-1].mes, mesesRestantes);
+  let comparacion = null;
+  if(meta.fechaObjetivo){
+    const mesObjetivo = meta.fechaObjetivo.slice(0,7);
+    comparacion = mesEstimado <= mesObjetivo ? 'a-tiempo' : 'retraso';
+  }
+  return {alcanzable: true, mesesRestantes, mesEstimado, comparacion};
+}
+
+function proyeccionMetaHTML(proyeccion){
+  if(!proyeccion) return '';
+  if(!proyeccion.alcanzable) return `<div class="meta-proyeccion meta-proyeccion-muted">Al ritmo de ahorro actual, todavía no se alcanzaría — prueba a ahorrar algo más cada mes.</div>`;
+  const cuando = mesLabel(proyeccion.mesEstimado);
+  const nota = proyeccion.comparacion === 'retraso' ? ' (un poco más tarde de tu fecha objetivo)'
+    : proyeccion.comparacion === 'a-tiempo' ? ' (a tiempo para tu fecha objetivo)' : '';
+  const meses = proyeccion.mesesRestantes === 1 ? '1 mes' : `${proyeccion.mesesRestantes} meses`;
+  return `<div class="meta-proyeccion">🚀 Al ritmo actual, la alcanzarías en ${meses} — sobre ${escapeHTML(cuando)}${nota}</div>`;
+}
+
+function metaRowHTML(meta, progreso, proyeccion){
   const pct = meta.objetivo > 0 ? progreso / meta.objetivo : 0;
   const pctClamped = Math.max(0, Math.min(1, pct));
   const conseguida = !!meta.conseguida;
@@ -1781,6 +1884,7 @@ function metaRowHTML(meta, progreso){
       <span>${fmtEUR0.format(progreso)} de ${fmtEUR0.format(meta.objetivo)}</span>
       <span>${meta.fechaObjetivo ? 'para ' + fmtDate(meta.fechaObjetivo) : ''}</span>
     </div>
+    ${conseguida ? '' : proyeccionMetaHTML(proyeccion)}
     <div class="meta-actions">
       <button type="button" data-meta-toggle="${meta.id}">${conseguida ? 'Reabrir' : 'Marcar conseguida'}</button>
       <button type="button" class="danger meta-del" data-meta-del="${meta.id}">Eliminar</button>
@@ -1841,6 +1945,25 @@ function renderRecurrentes(){
   $('#recurrentes-list').innerHTML = pending.length
     ? pending.map(recurrenteRowHTML).join('')
     : '<div class="empty-hint">Ya tienes todos los recurrentes de este mes registrados ✓</div>';
+}
+
+/* ================= Gastos fijos pendientes (aviso, no requiere configuración previa) ================= */
+function gastoFijoPendienteRowHTML(c){
+  return `<div class="rec-row">
+    <div class="rec-main">
+      <div class="rec-concepto">${catIcon(c.categoria)} ${escapeHTML(c.categoria)}</div>
+      <div class="rec-meta">Sueles pagar unos ~${fmtEUR0.format(c.previsto)} por estas fechas</div>
+    </div>
+  </div>`;
+}
+
+function renderGastosFijosPendientes(){
+  const card = $('#card-gastos-fijos-pendientes');
+  const mesActual = todayISO().slice(0,7);
+  const pendientes = gastosFijosPendientes(mesActual);
+  if(!pendientes.length){ card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  $('#gastos-fijos-pendientes-list').innerHTML = pendientes.map(gastoFijoPendienteRowHTML).join('');
 }
 
 document.addEventListener('click', async (e) => {
