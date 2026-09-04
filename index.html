@@ -14,7 +14,7 @@
 <style>
 :root{
   --surface:#fcfcfb; --plane:#f9f9f7; --ink:#0b0b0b; --ink-soft:#52514e; --muted:#898781;
-  --grid:#e1e0d9; --border:rgba(11,11,11,0.10); --card-shadow:0 1px 2px rgba(11,11,11,0.06),0 1px 8px rgba(11,11,11,0.04);
+  --grid:#e1e0d9; --border:rgba(11,11,11,0.07); --card-shadow:0 1px 3px rgba(11,11,11,0.06),0 10px 24px rgba(11,11,11,0.09);
   --blue:#2a78d6; --orange:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --magenta:#e87ba4; --green:#008300; --violet:#4a3aa7; --red:#e34948;
   --neutral:#adb3ba;
   --c-ingreso:#008300; --c-gasto:#eb6834; --c-ahorro:#2a78d6; --c-alerta:#d03b3b;
@@ -24,7 +24,7 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --surface:#1a1a19; --plane:#0d0d0d; --ink:#ffffff; --ink-soft:#c3c2b7; --muted:#9a988f;
-    --grid:#2c2c2a; --border:rgba(255,255,255,0.12); --card-shadow:0 1px 2px rgba(0,0,0,0.3),0 1px 8px rgba(0,0,0,0.2);
+    --grid:#2c2c2a; --border:rgba(255,255,255,0.12); --card-shadow:0 1px 2px rgba(0,0,0,0.4),0 10px 24px rgba(0,0,0,0.35);
     --blue:#3987e5; --orange:#d95926; --aqua:#199e70; --yellow:#c98500; --magenta:#d55181; --green:#3fb43f; --violet:#9085e9; --red:#e66767;
     --neutral:#5b5f63;
     --c-ingreso:#3fb43f; --c-gasto:#d95926; --c-ahorro:#3987e5; --c-alerta:#e66767;
@@ -33,7 +33,7 @@
 }
 :root[data-theme="dark"]{
   --surface:#1a1a19; --plane:#0d0d0d; --ink:#ffffff; --ink-soft:#c3c2b7; --muted:#9a988f;
-  --grid:#2c2c2a; --border:rgba(255,255,255,0.12); --card-shadow:0 1px 2px rgba(0,0,0,0.3),0 1px 8px rgba(0,0,0,0.2);
+  --grid:#2c2c2a; --border:rgba(255,255,255,0.12); --card-shadow:0 1px 2px rgba(0,0,0,0.4),0 10px 24px rgba(0,0,0,0.35);
   --blue:#3987e5; --orange:#d95926; --aqua:#199e70; --yellow:#c98500; --magenta:#d55181; --green:#3fb43f; --violet:#9085e9; --red:#e66767;
   --neutral:#5b5f63;
   --c-ingreso:#3fb43f; --c-gasto:#d95926; --c-ahorro:#3987e5; --c-alerta:#e66767;
@@ -63,7 +63,9 @@ h1,h2,h3,p{margin:0;}
 
 /* ---------- Header ---------- */
 header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+header::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--violet),var(--aqua));}
 .h-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.h-title-text{background:linear-gradient(90deg,var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--ink);}
 .header-actions{display:flex;align-items:center;gap:8px;}
 .theme-toggle{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--plane);color:var(--ink);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .user-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--plane);border-radius:999px;padding:6px 12px 6px 6px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;}
@@ -73,7 +75,8 @@ header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:
 
 main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .view{display:none;flex-direction:column;gap:16px;}
-.view.active{display:flex;}
+.view.active{display:flex;animation:viewFadeIn .22s ease;}
+@keyframes viewFadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
 /* ---------- Cards & sections ---------- */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:16px;}
@@ -142,6 +145,10 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 
 /* ---------- Gasto por categoría — evolución (líneas) ---------- */
 .cat-chip-picker{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+#cat-chart-picker,#ing-chart-picker{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent 100%);mask-image:linear-gradient(90deg,#000 92%,transparent 100%);}
+#cat-chart-picker::-webkit-scrollbar,#ing-chart-picker::-webkit-scrollbar{height:4px;}
+#cat-chart-picker::-webkit-scrollbar-thumb,#ing-chart-picker::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+#cat-chart-picker .cat-chip,#ing-chart-picker .cat-chip{flex:none;}
 .cat-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:var(--plane);color:var(--ink-soft);font-size:12.5px;font-weight:600;cursor:pointer;}
 .cat-chip.active{color:#fff;border-color:transparent;}
 #movs-filter-conticket.active,#movs-filter-sinticket.active{background:var(--blue);color:#fff;border-color:transparent;}
@@ -166,6 +173,14 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 /* ---------- Month panel ---------- */
 .month-select-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
 .month-select-row select{flex:1;}
+.filtros-toggle{display:flex;align-items:center;gap:8px;width:100%;background:var(--plane);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;margin-bottom:0;}
+.filtros-toggle span:first-child{flex:1;text-align:left;}
+.filtros-badge{background:var(--c-ahorro);color:#fff;font-size:11px;font-weight:800;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
+.filtros-badge[hidden]{display:none;}
+.filtros-chevron{color:var(--muted);font-size:15px;transition:transform .2s ease;}
+.filtros-toggle.open .filtros-chevron{transform:rotate(180deg);}
+.filtros-panel{max-height:0;overflow:hidden;opacity:0;transition:max-height .28s ease,opacity .2s ease;}
+.filtros-panel.open{max-height:700px;opacity:1;margin-top:12px;}
 .mp-table{width:100%;border-collapse:collapse;font-size:13.5px;}
 .mp-table th{text-align:right;font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:800;padding:4px 6px;border-bottom:2px solid var(--grid);}
 .mp-table th:first-child,.mp-table td:first-child{text-align:left;}
@@ -179,7 +194,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 /* ---------- Category bars ---------- */
 .cat-row{display:flex;align-items:center;gap:10px;padding:7px 0;}
 .cat-swatch{width:10px;height:10px;border-radius:3px;flex:none;}
-.cat-name{flex:1;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cat-name{flex:1;font-size:13.5px;min-width:0;line-height:1.3;}
 .cat-bar-track{flex:1;height:14px;background:var(--plane);border-radius:4px;overflow:hidden;min-width:60px;}
 .cat-bar-fill{height:100%;border-radius:4px;}
 .cat-value{font-size:13px;font-weight:700;width:74px;text-align:right;font-variant-numeric:tabular-nums;flex:none;}
@@ -200,7 +215,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .mov-del.confirm{color:var(--c-alerta);font-weight:800;font-size:11px;}
 .mov-ticket{background:none;border:none;color:var(--c-ahorro);cursor:pointer;font-size:15px;padding:4px 2px;flex:none;}
 
-.empty-hint{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 8px;}
+.empty-hint{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 8px;line-height:1.55;}
 
 /* ---------- Curiosidades del mes ---------- */
 .curio-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;font-size:13.5px;line-height:1.4;}
@@ -286,9 +301,16 @@ nav.bottom button.active{color:var(--c-ahorro);}
 .muted{color:var(--muted);font-size:12.5px;}
 .link-btn{background:none;border:none;color:var(--c-ahorro);font-weight:700;font-size:13px;cursor:pointer;padding:4px;}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:40;}
-.modal-backdrop.show{display:flex;}
+.modal-backdrop.show{display:flex;animation:modalBackdropFadeIn .2s ease;}
 .modal-sheet{background:var(--surface);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0));
   display:flex;flex-direction:column;gap:14px;max-height:88vh;overflow-y:auto;}
+.modal-backdrop.show .modal-sheet{animation:modalSheetSlideUp .28s cubic-bezier(.2,.8,.2,1);}
+@keyframes modalBackdropFadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes modalSheetSlideUp{from{transform:translateY(28px);opacity:.5;}to{transform:translateY(0);opacity:1;}}
+@media (prefers-reduced-motion: reduce){
+  .view.active,.modal-backdrop.show,.modal-backdrop.show .modal-sheet{animation:none;}
+  .filtros-panel,.filtros-chevron{transition:none;}
+}
 .modal-head{display:flex;align-items:center;justify-content:space-between;}
 .modal-head h3{font-size:16px;font-weight:800;}
 .modal-head button{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}
@@ -321,7 +343,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
 
   <div id="screen-main" style="display:none;">
     <header>
-      <div class="h-title">💶 Nuestras Finanzas</div>
+      <div class="h-title">💶 <span class="h-title-text">Nuestras Finanzas</span></div>
       <div class="header-actions">
         <button class="theme-toggle" id="btn-theme-toggle" title="Cambiar tema" aria-label="Cambiar tema">🌙</button>
         <button class="user-pill" id="btn-switch-user">
@@ -416,6 +438,12 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div class="month-select-row">
             <select id="movs-mes-select"></select>
           </div>
+          <button type="button" class="filtros-toggle" id="movs-filtros-toggle">
+            <span>🔎 Filtros</span>
+            <span class="filtros-badge" id="movs-filtros-badge" hidden>0</span>
+            <span class="filtros-chevron">⌄</span>
+          </button>
+          <div class="filtros-panel" id="movs-filtros-panel">
           <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px;">
             <div class="field"><label for="movs-fecha-desde">Desde</label><input type="date" id="movs-fecha-desde"></div>
             <div class="field"><label for="movs-fecha-hasta">Hasta</label><input type="date" id="movs-fecha-hasta"></div>
@@ -442,6 +470,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
             <button type="button" class="cat-chip" id="movs-filter-conticket">🧾 Con ticket</button>
             <button type="button" class="cat-chip" id="movs-filter-sinticket">🧾 Sin ticket</button>
+          </div>
           </div>
           <div id="movs-list"></div>
         </div>
@@ -1503,7 +1532,7 @@ function renderRecent(){
   const recent = sorted.slice(0,5);
   $('#recent-list').innerHTML = recent.length
     ? recent.map(m => movRowHTML(m, true)).join('')
-    : '<div class="empty-hint">Aún no hay movimientos.</div>';
+    : '<div class="empty-hint">👋 Aún no hay movimientos. Registra el primero desde "Añadir".</div>';
 }
 
 function renderMovs(){
@@ -1523,11 +1552,15 @@ function renderMovs(){
     .sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
   $('#movs-filter-conticket').classList.toggle('active', ticket === 'con');
   $('#movs-filter-sinticket').classList.toggle('active', ticket === 'sin');
+  const filtrosActivos = [fechaDesde || fechaHasta, importeMin !== '' || importeMax !== '', q.trim() !== '', categoria !== 'todas', persona !== 'todos', ticket !== 'todos'].filter(Boolean).length;
+  const badge = $('#movs-filtros-badge');
+  badge.textContent = filtrosActivos;
+  badge.hidden = filtrosActivos === 0;
   const emptyMsg = ticket === 'sin' ? 'No hay movimientos sin ticket que coincidan — ¡todo tiene su foto o PDF! 🎉'
-    : ticket === 'con' ? 'No hay movimientos con ticket que coincidan todavía.'
-    : (fechaDesde || fechaHasta) ? 'No hay movimientos en ese rango de fechas.'
-    : (importeMin !== '' || importeMax !== '') ? 'No hay movimientos en ese rango de importes.'
-    : 'No hay movimientos que coincidan.';
+    : ticket === 'con' ? '🧾 No hay movimientos con ticket que coincidan todavía.'
+    : (fechaDesde || fechaHasta) ? '🔍 No hay movimientos en ese rango de fechas.'
+    : (importeMin !== '' || importeMax !== '') ? '🔍 No hay movimientos en ese rango de importes.'
+    : '🔍 No hay movimientos que coincidan.';
   $('#movs-list').innerHTML = list.length
     ? list.map(m => movRowHTML(m, true)).join('')
     : `<div class="empty-hint">${emptyMsg}</div>`;
@@ -1552,6 +1585,10 @@ $('#movs-cat-filter').addEventListener('change', e => { state.movsFilters.catego
 $('#movs-persona-filter').addEventListener('change', e => { state.movsFilters.persona = e.target.value; renderMovs(); });
 $('#movs-filter-conticket').addEventListener('click', () => { state.movsFilters.ticket = state.movsFilters.ticket === 'con' ? 'todos' : 'con'; renderMovs(); });
 $('#movs-filter-sinticket').addEventListener('click', () => { state.movsFilters.ticket = state.movsFilters.ticket === 'sin' ? 'todos' : 'sin'; renderMovs(); });
+$('#movs-filtros-toggle').addEventListener('click', () => {
+  const abierto = $('#movs-filtros-panel').classList.toggle('open');
+  $('#movs-filtros-toggle').classList.toggle('open', abierto);
+});
 
 function renderResumen(){
   const timeline = fullTimeline();
@@ -1613,7 +1650,7 @@ function renderResumen(){
     </div>`;
   let html = top.map(([name,val],i) => catHTML(name, val, `var(--${CAT_PALETTE[i]})`, catIcon(name))).join('');
   if(restCount > 0) html += catHTML(`Otros (${restCount})`, restSum, 'var(--neutral)');
-  $('#cat-breakdown').innerHTML = html || '<div class="empty-hint">Sin gastos este mes.</div>';
+  $('#cat-breakdown').innerHTML = html || '<div class="empty-hint">🎉 Aún no has registrado ningún gasto este mes.</div>';
 
   renderCatChart(timeline);
   renderIngChart(timeline);
@@ -1621,7 +1658,7 @@ function renderResumen(){
   const gastoMap = Object.fromEntries(cats);
   const presEntries = Object.entries(state.presupuestos).filter(([,v]) => v && v.limite > 0);
   if(!presEntries.length){
-    $('#presupuestos-list').innerHTML = '<div class="empty-hint">Aún no has definido presupuestos. Pulsa "Editar" para poner un límite mensual a alguna categoría.</div>';
+    $('#presupuestos-list').innerHTML = '<div class="empty-hint">🎯 Aún no has definido presupuestos. Pulsa "Editar" para poner un límite mensual a alguna categoría.</div>';
   } else {
     $('#presupuestos-list').innerHTML = presEntries
       .sort((a,b) => (gastoMap[b[0]]||0)/b[1].limite - (gastoMap[a[0]]||0)/a[1].limite)
@@ -1637,7 +1674,7 @@ function renderResumen(){
     (a.conseguida?1:0) - (b.conseguida?1:0) || (b.creadoEn||'').localeCompare(a.creadoEn||''));
   $('#metas-list').innerHTML = metasSorted.length
     ? metasSorted.map(m => metaRowHTML(m, progresoMeta(m, timeline), proyeccionMeta(m, timeline))).join('')
-    : '<div class="empty-hint">Aún no tienes metas de ahorro. Pulsa "➕ Nueva" para crear una.</div>';
+    : '<div class="empty-hint">🌱 Aún no tienes metas de ahorro. Pulsa "➕ Nueva" para crear una.</div>';
 
   $('#resumen-anual').innerHTML = resumenAnualHTML(resumenAnual(state.resumenAnio));
 }
@@ -1672,13 +1709,13 @@ function curiosidadesHTML(cur){
   if(cur.bajaMas){
     items.push(`<div class="curio-row"><div class="curio-ic">📉</div><div class="curio-text"><strong>Lo que más ha bajado:</strong> ${catIcon(cur.bajaMas.cat)} ${escapeHTML(cur.bajaMas.cat)}, ${fmtEUR.format(cur.bajaMas.delta)} respecto al mes anterior</div></div>`);
   }
-  if(!items.length) return '<div class="empty-hint">Todavía no hay suficientes datos este mes para sacar curiosidades.</div>';
+  if(!items.length) return '<div class="empty-hint">💡 Todavía no hay suficientes datos este mes para sacar curiosidades.</div>';
   if(!cur.hayMesAnterior) items.push('<div class="curio-row curio-muted">Aún no hay datos del mes anterior para comparar categorías.</div>');
   return items.join('');
 }
 
 function comparativaHTML(comp){
-  if(!comp) return '<div class="empty-hint">Aún no hay datos del mismo mes hace un año para comparar.</div>';
+  if(!comp) return '<div class="empty-hint">📅 Aún no hay datos del mismo mes hace un año para comparar.</div>';
   const rows = comp.filas.map(f => {
     const delta = f.actual - f.anterior;
     const favorable = f.favorableSiSube ? delta >= 0 : delta <= 0;
@@ -1706,7 +1743,7 @@ function previsionRowHTML(c){
 }
 
 function previsionHTML(prev){
-  if(!prev.categorias.length) return '<div class="empty-hint">Todavía no hay histórico suficiente para estimar el gasto de este mes.</div>';
+  if(!prev.categorias.length) return '<div class="empty-hint">📈 Todavía no hay histórico suficiente para estimar el gasto de este mes.</div>';
   const rows = prev.categorias.map(previsionRowHTML).join('');
   return `<div class="prev-total">
       <div>Gastado hasta ahora: <strong>${fmtEUR.format(prev.totalActual)}</strong></div>
@@ -1740,7 +1777,7 @@ function comparativaPersonaRowHTML(c){
     </div>`;
 }
 function comparativaPersonasHTML(comp){
-  if(!comp.categorias.length) return '<div class="empty-hint">Aún no hay gastos este mes para comparar.</div>';
+  if(!comp.categorias.length) return '<div class="empty-hint">🤝 Aún no hay gastos este mes para comparar.</div>';
   const rows = comp.categorias.map(comparativaPersonaRowHTML).join('');
   return `<div class="prev-total">
       <div><span class="comp-pers-tag sergio">S</span> Sergio: <strong>${fmtEUR.format(comp.totalS)}</strong></div>
@@ -1757,7 +1794,7 @@ function resumenAnualCatRowHTML(categoria, valor, max){
     </div>`;
 }
 function resumenAnualHTML(r){
-  if(!r.mesesConDatos) return '<div class="empty-hint">No hay datos para este año.</div>';
+  if(!r.mesesConDatos) return '<div class="empty-hint">📅 No hay datos para este año.</div>';
   const max = r.categorias.length ? r.categorias[0][1] : 0;
   const catRows = r.categorias.map(([cat,val]) => resumenAnualCatRowHTML(cat, val, max)).join('');
   return `<div class="prev-total">
@@ -1797,7 +1834,7 @@ function svgSparkline(values, opts){
 
 function evolChartHTML(timeline){
   const rows = timeline.slice(-12);
-  if(rows.length < 2) return '<div class="empty-hint">Todavía no hay suficientes meses para ver una evolución.</div>';
+  if(rows.length < 2) return '<div class="empty-hint">📈 Todavía no hay suficientes meses para ver una evolución.</div>';
   const W = 300, H = 108;
   const maxVal = Math.max(1, ...rows.map(r => Math.max(r.ingS+r.ingC, r.gasS+r.gasC)));
   const groupW = W / rows.length;
@@ -1877,8 +1914,8 @@ function chartPickerHTML(universo, selected, chipAttr){
 
 function categoryLineChartHTML(universo, breakdownFn, selCats, timeline, hitClass, tooltipId){
   const rows = timeline.slice(-12);
-  if(rows.length < 2) return '<div class="empty-hint">Todavía no hay suficientes meses para ver una evolución.</div>';
-  if(!selCats.length) return '<div class="empty-hint">Selecciona una o más categorías para ver su evolución.</div>';
+  if(rows.length < 2) return '<div class="empty-hint">📈 Todavía no hay suficientes meses para ver una evolución.</div>';
+  if(!selCats.length) return '<div class="empty-hint">👆 Selecciona una o más categorías para ver su evolución.</div>';
   const perMonth = rows.map(r => Object.fromEntries(breakdownFn(r.mes)));
   const series = selCats.map(cat => ({ cat, color: colorForCat(universo, cat), dash: dashForCat(universo, cat), values: perMonth.map(m => m[cat] || 0) }));
   const W = 300, H = 108;
@@ -2121,7 +2158,7 @@ function renderSaldo(){
       </div>
       <div class="liq-amount">${fmtEUR.format(l.importe)}</div>
       <button class="mov-del" data-liq-id="${l.id}" title="Eliminar">🗑</button>
-    </div>`).join('') : '<div class="empty-hint">Sin liquidaciones todavía.</div>';
+    </div>`).join('') : '<div class="empty-hint">🤝 Sin liquidaciones todavía.</div>';
 }
 
 /* ================= Recurrentes ================= */
@@ -2206,7 +2243,7 @@ function manageRecurrenteRowHTML(r){
 function renderManageRecurrentes(){
   $('#manage-recurrentes-list').innerHTML = state.recurrentes.length
     ? state.recurrentes.map(manageRecurrenteRowHTML).join('')
-    : '<div class="empty-hint">Aún no tienes ningún recurrente. Actívalo con el interruptor "Repetir cada mes" al añadir un movimiento.</div>';
+    : '<div class="empty-hint">🔁 Aún no tienes ningún recurrente. Actívalo con el interruptor "Repetir cada mes" al añadir un movimiento.</div>';
 }
 $('#btn-manage-recurrentes').addEventListener('click', () => { renderManageRecurrentes(); $('#modal-recurrentes').classList.add('show'); });
 $('#close-modal-recurrentes').addEventListener('click', () => $('#modal-recurrentes').classList.remove('show'));
