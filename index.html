@@ -145,12 +145,20 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 
 /* ---------- Gasto por categoría — evolución (líneas) ---------- */
 .cat-chip-picker{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
-#cat-chart-picker,#ing-chart-picker{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent 100%);mask-image:linear-gradient(90deg,#000 92%,transparent 100%);}
+#cat-chart-picker,#ing-chart-picker{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;-webkit-mask-image:linear-gradient(90deg,#000 78%,rgba(0,0,0,.45) 100%);mask-image:linear-gradient(90deg,#000 78%,rgba(0,0,0,.45) 100%);}
 #cat-chart-picker::-webkit-scrollbar,#ing-chart-picker::-webkit-scrollbar{height:4px;}
 #cat-chart-picker::-webkit-scrollbar-thumb,#ing-chart-picker::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 #cat-chart-picker .cat-chip,#ing-chart-picker .cat-chip{flex:none;}
 .cat-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:var(--plane);color:var(--ink-soft);font-size:12.5px;font-weight:600;cursor:pointer;}
 .cat-chip.active{color:#fff;border-color:transparent;}
+
+/* ---------- Resumen: accesos rápidos para saltar de sección ---------- */
+.jump-target{scroll-margin-top:74px;}
+.jump-nav{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px;padding-bottom:2px;-webkit-mask-image:linear-gradient(90deg,#000 88%,rgba(0,0,0,.45) 100%);mask-image:linear-gradient(90deg,#000 88%,rgba(0,0,0,.45) 100%);}
+.jump-nav::-webkit-scrollbar{height:4px;}
+.jump-nav::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+.jump-nav button{flex:none;display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1px solid var(--border);background:var(--plane);color:var(--ink-soft);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.jump-nav button:active{background:var(--tint-ahorro);color:var(--c-ahorro);border-color:transparent;}
 #movs-filter-conticket.active,#movs-filter-sinticket.active{background:var(--blue);color:#fff;border-color:transparent;}
 .catchart-hit{cursor:pointer;}
 .catchart-tip-row{display:flex;align-items:center;gap:6px;margin-top:4px;}
@@ -166,9 +174,10 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .meta-amounts{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
 .meta-proyeccion{font-size:12px;color:var(--c-ahorro);margin-top:6px;}
 .meta-proyeccion-muted{color:var(--muted);}
-.meta-actions{display:flex;gap:14px;margin-top:6px;}
-.meta-actions button{background:none;border:none;padding:0;font-size:12.5px;color:var(--c-ahorro);font-weight:700;cursor:pointer;}
-.meta-actions button.danger{color:var(--c-alerta);}
+.meta-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.meta-actions button{background:var(--tint-ahorro);border:1px solid transparent;border-radius:20px;padding:6px 12px;font-size:12.5px;color:var(--c-ahorro);font-weight:700;cursor:pointer;}
+.meta-actions button.danger{background:none;border-color:var(--border);color:var(--c-alerta);}
+.meta-actions button.danger.confirm{background:var(--c-alerta);border-color:transparent;color:#fff;}
 
 /* ---------- Month panel ---------- */
 .month-select-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
@@ -204,7 +213,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .mov-row:last-child{border-bottom:none;}
 .mov-cat-dot{width:8px;height:8px;border-radius:50%;flex:none;}
 .mov-main{flex:1;min-width:0;}
-.mov-concepto{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mov-concepto{font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:break-word;}
 .mov-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .badge{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:6px;}
 .badge.compartido{background:var(--tint-ahorro);color:var(--c-ahorro);}
@@ -222,6 +231,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .sel-toggle.active{background:var(--c-ahorro);border-color:transparent;color:#fff;}
 .mov-select-cb{flex:none;width:19px;height:19px;accent-color:var(--c-ahorro);cursor:pointer;}
 .movs-bulk-bar{display:flex;align-items:center;gap:8px;background:var(--tint-ahorro);border-radius:var(--radius-sm);padding:10px 12px;margin:10px 0;flex-wrap:wrap;}
+.movs-bulk-bar[hidden]{display:none;}
 .movs-bulk-count{font-size:13px;font-weight:700;color:var(--c-ahorro);flex:1;min-width:110px;}
 .movs-bulk-bar .btn-sm{flex:none;}
 
@@ -269,7 +279,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .rec-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--grid);}
 .rec-row:last-child{border-bottom:none;}
 .rec-main{flex:1;min-width:0;}
-.rec-concepto{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rec-concepto{font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:break-word;}
 .rec-meta{font-size:12px;color:var(--muted);margin-top:2px;}
 .rec-amount{font-weight:800;font-size:13.5px;flex:none;font-variant-numeric:tabular-nums;color:var(--ink-soft);margin-right:2px;}
 
@@ -285,7 +295,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .liq-row:last-child{border-bottom:none;}
 .liq-arrow{font-size:13px;color:var(--ink-soft);white-space:nowrap;font-weight:700;}
 .liq-main{flex:1;min-width:0;}
-.liq-concepto{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.liq-concepto{font-size:12.5px;color:var(--muted);line-height:1.3;overflow-wrap:break-word;}
 .liq-amount{font-weight:800;color:var(--c-ahorro);font-variant-numeric:tabular-nums;}
 
 /* ---------- Bottom nav ---------- */
@@ -507,6 +517,16 @@ nav.bottom button.active{color:var(--c-ahorro);}
           </div>
         </div>
 
+        <div class="jump-nav" id="resumen-jump-nav">
+          <button type="button" data-jump="card-evolucion">📈 Evolución</button>
+          <button type="button" data-jump="card-prevision">🔮 Previsión</button>
+          <button type="button" data-jump="card-categorias">🍰 Categorías</button>
+          <button type="button" data-jump="card-presupuestos">💰 Presupuestos</button>
+          <button type="button" data-jump="card-metas">🌱 Metas</button>
+          <button type="button" data-jump="card-deudas">💳 Deudas</button>
+          <button type="button" data-jump="card-anual">📆 Anual</button>
+        </div>
+
         <div class="kpi-grid">
           <div class="kpi-card blue">
             <div class="kpi-label">Ahorro acumulado</div>
@@ -530,7 +550,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           </div>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-evolucion">
           <div class="section-title">Evolución</div>
           <div id="evol-chart"></div>
         </div>
@@ -545,7 +565,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           </table>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-prevision">
           <div class="section-title">Previsión de gasto del mes</div>
           <div id="prevision-gasto"></div>
         </div>
@@ -570,7 +590,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="comparativa-personas"></div>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-categorias">
           <div class="section-title">Gasto por categoría</div>
           <div id="cat-breakdown"></div>
         </div>
@@ -592,7 +612,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="presupuestos-riesgo"></div>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-presupuestos">
           <div class="row-between" style="margin-bottom:10px;">
             <div class="section-title" style="margin-bottom:0;">Presupuestos</div>
             <button type="button" class="link-btn" id="btn-edit-presupuestos">Editar</button>
@@ -600,7 +620,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="presupuestos-list"></div>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-metas">
           <div class="row-between" style="margin-bottom:10px;">
             <div class="section-title" style="margin-bottom:0;">Metas de ahorro</div>
             <button type="button" class="link-btn" id="btn-add-meta">➕ Nueva</button>
@@ -608,7 +628,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="metas-list"></div>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-deudas">
           <div class="row-between" style="margin-bottom:10px;">
             <div class="section-title" style="margin-bottom:0;">Préstamos y deudas</div>
             <button type="button" class="link-btn" id="btn-add-deuda">➕ Nueva</button>
@@ -616,7 +636,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="deudas-list"></div>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-anual">
           <div class="row-between" style="margin-bottom:10px;">
             <div class="section-title" style="margin-bottom:0;">Resumen anual</div>
             <select id="resumen-anio-select"></select>
@@ -1798,12 +1818,26 @@ function renderMovs(){
   renderMovsBulkBar();
 }
 
-/* ---------- Selección múltiple: barra de acciones en lote ---------- */
+/* ---------- Selección múltiple: barra de acciones en lote ----------
+   La barra (con "Todo") se muestra en cuanto se activa el modo selección, haya o no
+   algo marcado todavía -- así "Todo" siempre está a mano. Recategorizar/Eliminar,
+   en cambio, solo tienen sentido con algo seleccionado, así que se ocultan aparte. */
 function renderMovsBulkBar(){
   const bar = $('#movs-bulk-bar');
   const n = state.movsSelIds.size;
-  bar.hidden = !state.movsSelMode || n === 0;
-  if(!bar.hidden) $('#movs-bulk-count').textContent = n === 1 ? '1 seleccionado' : `${n} seleccionados`;
+  bar.hidden = !state.movsSelMode;
+  const delBtn = $('#movs-bulk-eliminar');
+  if(bar.hidden || n === 0){
+    /* #movs-bulk-eliminar es un elemento fijo del HTML (no se recrea al re-renderizar,
+       a diferencia de las filas de la lista), así que su estado de "toca de nuevo para
+       confirmar" hay que resetearlo a mano cada vez que deja de tener sentido mostrarlo. */
+    delBtn.classList.remove('confirm');
+    delBtn.textContent = '🗑 Eliminar';
+  }
+  if(bar.hidden) return;
+  $('#movs-bulk-count').textContent = n === 0 ? '0 seleccionados' : (n === 1 ? '1 seleccionado' : `${n} seleccionados`);
+  $('#movs-bulk-recategorizar').hidden = n === 0;
+  delBtn.hidden = n === 0;
 }
 
 function setMovsSelMode(on){
@@ -3231,6 +3265,14 @@ function csvEscape(v){
   const s = v == null ? '' : String(v);
   return /[";\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
 }
+/* Accesos rápidos: saltan directamente a una tarjeta de Resumen sin hacer scroll manual. */
+$('#resumen-jump-nav').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-jump]');
+  if(!btn) return;
+  const target = document.getElementById(btn.getAttribute('data-jump'));
+  if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+});
+
 $('#btn-export').addEventListener('click', () => {
   const rows = [['Tipo de fila','Fecha','Movimiento/Liquidación','Persona / De','Para (si es liquidación)','Categoría','Concepto','Importe (€)','Compartido','Observaciones','Ticket']];
   state.movimientos.slice().sort((a,b) => a.fecha.localeCompare(b.fecha)).forEach(m => {
