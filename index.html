@@ -215,6 +215,16 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .mov-del.confirm{color:var(--c-alerta);font-weight:800;font-size:11px;}
 .mov-ticket{background:none;border:none;color:var(--c-ahorro);cursor:pointer;font-size:15px;padding:4px 2px;flex:none;}
 
+/* ---------- Selección múltiple en Movimientos ---------- */
+.movs-toolbar-row{display:flex;gap:8px;align-items:stretch;}
+.movs-toolbar-row .filtros-toggle{margin-bottom:0;}
+.sel-toggle{flex:none;display:flex;align-items:center;gap:6px;background:var(--plane);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
+.sel-toggle.active{background:var(--c-ahorro);border-color:transparent;color:#fff;}
+.mov-select-cb{flex:none;width:19px;height:19px;accent-color:var(--c-ahorro);cursor:pointer;}
+.movs-bulk-bar{display:flex;align-items:center;gap:8px;background:var(--tint-ahorro);border-radius:var(--radius-sm);padding:10px 12px;margin:10px 0;flex-wrap:wrap;}
+.movs-bulk-count{font-size:13px;font-weight:700;color:var(--c-ahorro);flex:1;min-width:110px;}
+.movs-bulk-bar .btn-sm{flex:none;}
+
 .empty-hint{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 8px;line-height:1.55;}
 
 /* ---------- Curiosidades del mes ---------- */
@@ -438,11 +448,14 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div class="month-select-row">
             <select id="movs-mes-select"></select>
           </div>
-          <button type="button" class="filtros-toggle" id="movs-filtros-toggle">
-            <span>🔎 Filtros</span>
-            <span class="filtros-badge" id="movs-filtros-badge" hidden>0</span>
-            <span class="filtros-chevron">⌄</span>
-          </button>
+          <div class="movs-toolbar-row">
+            <button type="button" class="filtros-toggle" id="movs-filtros-toggle">
+              <span>🔎 Filtros</span>
+              <span class="filtros-badge" id="movs-filtros-badge" hidden>0</span>
+              <span class="filtros-chevron">⌄</span>
+            </button>
+            <button type="button" class="sel-toggle" id="movs-sel-toggle">☑️ <span id="movs-sel-toggle-label">Seleccionar</span></button>
+          </div>
           <div class="filtros-panel" id="movs-filtros-panel">
           <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px;">
             <div class="field"><label for="movs-fecha-desde">Desde</label><input type="date" id="movs-fecha-desde"></div>
@@ -471,6 +484,12 @@ nav.bottom button.active{color:var(--c-ahorro);}
             <button type="button" class="cat-chip" id="movs-filter-conticket">🧾 Con ticket</button>
             <button type="button" class="cat-chip" id="movs-filter-sinticket">🧾 Sin ticket</button>
           </div>
+          </div>
+          <div class="movs-bulk-bar" id="movs-bulk-bar" hidden>
+            <span class="movs-bulk-count" id="movs-bulk-count">0 seleccionados</span>
+            <button type="button" class="link-btn" id="movs-bulk-todo" style="padding:4px 6px;">Todo</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="movs-bulk-recategorizar">🏷️ Recategorizar</button>
+            <button type="button" class="btn btn-sm btn-danger-ghost" id="movs-bulk-eliminar">🗑 Eliminar</button>
           </div>
           <div id="movs-list"></div>
         </div>
@@ -591,6 +610,14 @@ nav.bottom button.active{color:var(--c-ahorro);}
 
         <div class="card">
           <div class="row-between" style="margin-bottom:10px;">
+            <div class="section-title" style="margin-bottom:0;">Préstamos y deudas</div>
+            <button type="button" class="link-btn" id="btn-add-deuda">➕ Nueva</button>
+          </div>
+          <div id="deudas-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between" style="margin-bottom:10px;">
             <div class="section-title" style="margin-bottom:0;">Resumen anual</div>
             <select id="resumen-anio-select"></select>
           </div>
@@ -672,6 +699,52 @@ nav.bottom button.active{color:var(--c-ahorro);}
         </div>
         <p class="screen-sub" style="text-align:left;font-size:12px;margin-bottom:14px;">El progreso se cuenta a partir del ahorro conjunto de este mes en adelante — el ahorro anterior no cuenta para esta meta.</p>
         <button type="submit" class="btn btn-primary">Crear meta</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-deuda">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Nuevo préstamo/deuda</h3><button id="close-modal-deuda">✕</button></div>
+      <form id="form-deuda">
+        <div class="field" style="margin-bottom:12px;">
+          <label for="deuda-nombre">Nombre</label>
+          <input type="text" id="deuda-nombre" maxlength="60" placeholder="p. ej. Préstamo Dari" required>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label for="deuda-categoria">Categoría vinculada</label>
+          <select id="deuda-categoria" required></select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="field">
+            <label for="deuda-objetivo">Deuda total</label>
+            <div class="amount-input"><input type="number" id="deuda-objetivo" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required></div>
+          </div>
+          <div class="field">
+            <label for="deuda-pagado">Ya pagado hasta hoy</label>
+            <div class="amount-input"><input type="number" id="deuda-pagado" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="deuda-fecha">Fecha objetivo para saldarla (opcional)</label>
+          <input type="date" id="deuda-fecha">
+        </div>
+        <p class="screen-sub" style="text-align:left;font-size:12px;margin-bottom:14px;">A partir de ahora, cada movimiento de gasto que registres en esa categoría cuenta como pago de esta deuda — súmalo a "Ya pagado hasta hoy" si ya venías pagándola antes.</p>
+        <button type="submit" class="btn btn-primary">Crear</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-bulk-recat">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Recategorizar movimientos</h3><button id="close-modal-bulk-recat">✕</button></div>
+      <form id="form-bulk-recat">
+        <p class="screen-sub" style="text-align:left;font-size:12.5px;margin-bottom:12px;" id="bulk-recat-sub"></p>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="bulk-recat-categoria">Nueva categoría</label>
+          <select id="bulk-recat-categoria" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary">Aplicar a todos</button>
       </form>
     </div>
   </div>
@@ -889,9 +962,12 @@ const state = {
   resumenAnio: null,
   movsMes: null,
   movsFilters: { q: '', categoria: 'todas', persona: 'todos', ticket: 'todos', fechaDesde: '', fechaHasta: '', importeMin: '', importeMax: '' },
+  movsSelMode: false,
+  movsSelIds: new Set(),
   recurrentes: [],
   presupuestos: {},
   metas: [],
+  deudas: [],
 };
 
 function $(sel){ return document.querySelector(sel); }
@@ -1235,6 +1311,11 @@ function subscribeData(db){
     state.metas = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
     renderAll();
   }, err => { console.error('metas onSnapshot', err); });
+
+  db.collection('deudas').onSnapshot(snap => {
+    state.deudas = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('deudas onSnapshot', err); });
 }
 
 /* ================= Derived data ================= */
@@ -1538,18 +1619,20 @@ $('#movs-importe-min').addEventListener('input', e => { state.movsFilters.import
 $('#movs-importe-max').addEventListener('input', e => { state.movsFilters.importeMax = e.target.value; renderMovs(); });
 $('#movs-importe-limpiar').addEventListener('click', () => { limpiarImporteMovs(); renderMovs(); });
 
-function movRowHTML(m, showPersona){
+function movRowHTML(m, showPersona, selMode){
   const catIdx = CATEGORIAS_GASTO.indexOf(m.categoria);
   const color = m.tipo==='Gasto' ? `var(--${CAT_PALETTE[catIdx % CAT_PALETTE.length] || 'neutral'})` : 'var(--c-ingreso)';
+  const checked = state.movsSelIds.has(m.id);
   return `<div class="mov-row" data-id="${m.id}">
+    ${selMode ? `<input type="checkbox" class="mov-select-cb" data-sel-id="${m.id}"${checked?' checked':''}>` : ''}
     <div class="mov-cat-dot" style="background:${color}"></div>
     <div class="mov-main">
       <div class="mov-concepto">${escapeHTML(m.concepto || m.categoria)}</div>
       <div class="mov-meta">${catIcon(m.categoria)} ${escapeHTML(m.categoria)} · ${fmtDate(m.fecha)}${showPersona ? ' · '+m.persona : ''}${m.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
     </div>
     <div class="mov-amount ${m.tipo==='Ingreso'?'ingreso':'gasto'}">${m.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(m.importe)}</div>
-    ${m.ticketData ? `<button class="mov-ticket" data-ticket-view="${m.id}" title="Ver ticket">🧾</button>` : ''}
-    <button class="mov-del" data-id="${m.id}" title="Eliminar">🗑</button>
+    ${!selMode && m.ticketData ? `<button class="mov-ticket" data-ticket-view="${m.id}" title="Ver ticket">🧾</button>` : ''}
+    ${!selMode ? `<button class="mov-del" data-id="${m.id}" title="Eliminar">🗑</button>` : ''}
   </div>`;
 }
 
@@ -1678,11 +1761,11 @@ function renderRecent(){
     : '<div class="empty-hint">👋 Aún no hay movimientos. Registra el primero desde "Añadir".</div>';
 }
 
-function renderMovs(){
+function filteredMovs(){
   const mes = state.movsMes;
   const {q, categoria, persona, ticket, fechaDesde, fechaHasta, importeMin, importeMax} = state.movsFilters;
   const qLower = q.trim().toLowerCase();
-  const list = state.movimientos
+  return state.movimientos
     .filter(m => mes === 'todos' || m.mes === mes)
     .filter(m => categoria === 'todas' || m.categoria === categoria)
     .filter(m => persona === 'todos' || m.persona === persona)
@@ -1693,6 +1776,11 @@ function renderMovs(){
     .filter(m => importeMax === '' || m.importe <= Number(importeMax))
     .filter(m => !qLower || (m.concepto||'').toLowerCase().includes(qLower) || (m.obs||'').toLowerCase().includes(qLower))
     .sort((a,b) => (b.fecha+b.id).localeCompare(a.fecha+a.id));
+}
+
+function renderMovs(){
+  const { ticket, fechaDesde, fechaHasta, importeMin, importeMax, q, categoria, persona } = state.movsFilters;
+  const list = filteredMovs();
   $('#movs-filter-conticket').classList.toggle('active', ticket === 'con');
   $('#movs-filter-sinticket').classList.toggle('active', ticket === 'sin');
   const filtrosActivos = [fechaDesde || fechaHasta, importeMin !== '' || importeMax !== '', q.trim() !== '', categoria !== 'todas', persona !== 'todos', ticket !== 'todos'].filter(Boolean).length;
@@ -1705,9 +1793,43 @@ function renderMovs(){
     : (importeMin !== '' || importeMax !== '') ? '🔍 No hay movimientos en ese rango de importes.'
     : '🔍 No hay movimientos que coincidan.';
   $('#movs-list').innerHTML = list.length
-    ? list.map(m => movRowHTML(m, true)).join('')
+    ? list.map(m => movRowHTML(m, true, state.movsSelMode)).join('')
     : `<div class="empty-hint">${emptyMsg}</div>`;
+  renderMovsBulkBar();
 }
+
+/* ---------- Selección múltiple: barra de acciones en lote ---------- */
+function renderMovsBulkBar(){
+  const bar = $('#movs-bulk-bar');
+  const n = state.movsSelIds.size;
+  bar.hidden = !state.movsSelMode || n === 0;
+  if(!bar.hidden) $('#movs-bulk-count').textContent = n === 1 ? '1 seleccionado' : `${n} seleccionados`;
+}
+
+function setMovsSelMode(on){
+  state.movsSelMode = on;
+  if(!on) state.movsSelIds.clear();
+  $('#movs-sel-toggle').classList.toggle('active', on);
+  $('#movs-sel-toggle-label').textContent = on ? 'Cancelar' : 'Seleccionar';
+  renderMovs();
+}
+$('#movs-sel-toggle').addEventListener('click', () => setMovsSelMode(!state.movsSelMode));
+
+document.addEventListener('change', (e) => {
+  const cb = e.target.closest('.mov-select-cb[data-sel-id]');
+  if(!cb) return;
+  const id = cb.getAttribute('data-sel-id');
+  if(cb.checked) state.movsSelIds.add(id); else state.movsSelIds.delete(id);
+  renderMovsBulkBar();
+});
+
+$('#movs-bulk-todo').addEventListener('click', () => {
+  const list = filteredMovs();
+  const allSelected = list.length > 0 && list.every(m => state.movsSelIds.has(m.id));
+  if(allSelected){ list.forEach(m => state.movsSelIds.delete(m.id)); }
+  else { list.forEach(m => state.movsSelIds.add(m.id)); }
+  renderMovs();
+});
 
 function allCategoriasForFilter(){
   const set = new Set(CATEGORIAS_GASTO);
@@ -1818,6 +1940,12 @@ function renderResumen(){
   $('#metas-list').innerHTML = metasSorted.length
     ? metasSorted.map(m => metaRowHTML(m, progresoMeta(m, timeline), proyeccionMeta(m, timeline))).join('')
     : '<div class="empty-hint">🌱 Aún no tienes metas de ahorro. Pulsa "➕ Nueva" para crear una.</div>';
+
+  const deudasSorted = state.deudas.slice().sort((a,b) =>
+    (a.saldada?1:0) - (b.saldada?1:0) || (b.creadoEn||'').localeCompare(a.creadoEn||''));
+  $('#deudas-list').innerHTML = deudasSorted.length
+    ? deudasSorted.map(d => deudaRowHTML(d, progresoDeuda(d), proyeccionDeuda(d))).join('')
+    : '<div class="empty-hint">💳 Aún no tienes préstamos o deudas en seguimiento. Pulsa "➕ Nueva" para añadir uno.</div>';
 
   $('#resumen-anual').innerHTML = resumenAnualHTML(resumenAnual(state.resumenAnio));
 }
@@ -2267,6 +2395,81 @@ function metaRowHTML(meta, progreso, proyeccion){
   </div>`;
 }
 
+/* ================= Préstamos y deudas =================
+   Mismo espíritu que las metas de ahorro pero al revés: en vez de acumular
+   ahorro conjunto desde que se crea, se suman los gastos reales registrados
+   en la categoría vinculada desde ese momento -- más lo que ya se hubiera
+   pagado antes de empezar a llevar el seguimiento (pagadoInicial), que no
+   hay forma de deducir solo de los movimientos. */
+function progresoDeuda(deuda){
+  const pagadoEnCategoria = state.movimientos
+    .filter(m => m.tipo === 'Gasto' && m.categoria === deuda.categoria && m.mes >= deuda.mesCreacion)
+    .reduce((s,m) => s + m.importe, 0);
+  return (deuda.pagadoInicial || 0) + pagadoEnCategoria;
+}
+
+/* Misma lógica de proyección que proyeccionMeta (ritmo medio de los últimos
+   PROYECCION_MESES_RITMO meses), pero el ritmo aquí es el gasto mensual real
+   en la categoría vinculada -- meses sin ningún pago cuentan como 0, así que
+   una deuda pagada de forma irregular seguirá dando una estimación razonable. */
+function proyeccionDeuda(deuda){
+  const progreso = progresoDeuda(deuda);
+  const restante = deuda.objetivo - progreso;
+  if(deuda.saldada || restante <= 0.004) return null;
+  const mesActual = todayISO().slice(0,7);
+  let sumaReciente = 0;
+  for(let i = 0; i < PROYECCION_MESES_RITMO; i++){
+    const mes = mesShift(mesActual, -i);
+    sumaReciente += state.movimientos
+      .filter(m => m.tipo === 'Gasto' && m.categoria === deuda.categoria && m.mes === mes)
+      .reduce((s,m) => s + m.importe, 0);
+  }
+  const ritmo = sumaReciente / PROYECCION_MESES_RITMO;
+  if(ritmo <= 0.004) return {alcanzable: false};
+  const mesesRestantes = Math.max(1, Math.ceil(restante / ritmo));
+  const mesEstimado = mesShift(mesActual, mesesRestantes);
+  let comparacion = null;
+  if(deuda.fechaObjetivo){
+    const mesObjetivo = deuda.fechaObjetivo.slice(0,7);
+    comparacion = mesEstimado <= mesObjetivo ? 'a-tiempo' : 'retraso';
+  }
+  return {alcanzable: true, mesesRestantes, mesEstimado, comparacion};
+}
+
+function proyeccionDeudaHTML(proyeccion){
+  if(!proyeccion) return '';
+  if(!proyeccion.alcanzable) return `<div class="meta-proyeccion meta-proyeccion-muted">Sin pagos recientes en esta categoría -- no se puede estimar cuándo quedará saldada.</div>`;
+  const cuando = mesLabel(proyeccion.mesEstimado);
+  const nota = proyeccion.comparacion === 'retraso' ? ' (un poco más tarde de tu fecha objetivo)'
+    : proyeccion.comparacion === 'a-tiempo' ? ' (a tiempo para tu fecha objetivo)' : '';
+  const meses = proyeccion.mesesRestantes === 1 ? '1 mes' : `${proyeccion.mesesRestantes} meses`;
+  return `<div class="meta-proyeccion">📅 Al ritmo actual, quedaría saldada en ${meses} -- sobre ${escapeHTML(cuando)}${nota}</div>`;
+}
+
+function deudaRowHTML(deuda, progreso, proyeccion){
+  const pct = deuda.objetivo > 0 ? progreso / deuda.objetivo : 0;
+  const pctClamped = Math.max(0, Math.min(1, pct));
+  const saldada = !!deuda.saldada;
+  const restante = Math.max(0, deuda.objetivo - progreso);
+  const color = saldada ? 'var(--c-ingreso)' : 'var(--c-gasto)';
+  return `<div class="meta-row" data-id="${deuda.id}">
+    <div class="meta-top">
+      <div class="meta-nombre${saldada?' conseguida':''}">${saldada?'🏆 ':'💳 '}${escapeHTML(deuda.nombre)}</div>
+      <div class="meta-pct">${fmtPct.format(pctClamped)}</div>
+    </div>
+    <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.max(4,pctClamped*100)}%;background:${color}"></div></div>
+    <div class="meta-amounts">
+      <span>${fmtEUR0.format(progreso)} de ${fmtEUR0.format(deuda.objetivo)}${saldada ? '' : ' · quedan '+fmtEUR0.format(restante)}</span>
+      <span>${catIcon(deuda.categoria)} ${escapeHTML(deuda.categoria)}</span>
+    </div>
+    ${saldada ? '' : proyeccionDeudaHTML(proyeccion)}
+    <div class="meta-actions">
+      <button type="button" data-deuda-toggle="${deuda.id}">${saldada ? 'Reabrir' : 'Marcar saldada'}</button>
+      <button type="button" class="danger meta-del" data-deuda-del="${deuda.id}">Eliminar</button>
+    </div>
+  </div>`;
+}
+
 /* A partir de qué importe pendiente merece la pena avisar de que quizás toca
    liquidar. Es un valor fijo elegido por Claude -- si no acierta con lo que
    a Sergio y Carmen les parece "mucho", es fácil de ajustar. */
@@ -2550,6 +2753,12 @@ document.addEventListener('click', (e) => {
   const row = e.target.closest('.mov-row[data-id]');
   if(!row) return;
   if(!row.closest('#movs-list') && !row.closest('#recent-list')) return;
+  if(state.movsSelMode && row.closest('#movs-list')){
+    if(e.target.classList.contains('mov-select-cb')) return; // ya gestionado por su propio 'change'
+    const cb = row.querySelector('.mov-select-cb');
+    if(cb) cb.click();
+    return;
+  }
   openEditModal(row.getAttribute('data-id'));
 });
 $('#close-modal-edit').addEventListener('click', () => $('#modal-edit-mov').classList.remove('show'));
@@ -2723,6 +2932,87 @@ async function eliminarMovConDeshacer(id){
   });
 }
 
+/* Igual que eliminarMovConDeshacer pero para varios a la vez (selección
+   múltiple): borra todos en paralelo y ofrece un único "Deshacer" que los
+   vuelve a crear todos tal cual (con ids nuevos, por la misma razón). */
+async function eliminarMovsConDeshacer(ids){
+  const originales = ids.map(id => state.movimientos.find(m => m.id === id)).filter(Boolean);
+  await Promise.all(ids.map(id => state.db.doc('movimientos/'+id).delete()));
+  const n = originales.length;
+  showToast(n === 1 ? '1 movimiento eliminado' : `${n} movimientos eliminados`, {
+    actionLabel: 'Deshacer',
+    onAction: async () => {
+      try{
+        await Promise.all(originales.map(m => { const r = Object.assign({}, m); delete r.id; return state.db.collection('movimientos').add(r); }));
+        showToast('Restaurados ✓');
+      }catch(err){ console.error(err); showToast('No se pudo restaurar.'); }
+    }
+  });
+}
+
+/* ---------- Selección múltiple: recategorizar y eliminar en lote ---------- */
+$('#movs-bulk-recategorizar').addEventListener('click', () => {
+  const ids = Array.from(state.movsSelIds);
+  const seleccionados = ids.map(id => state.movimientos.find(m => m.id === id)).filter(Boolean);
+  if(!seleccionados.length) return;
+  const tipos = new Set(seleccionados.map(m => m.tipo));
+  if(tipos.size > 1){ showToast('Selecciona movimientos del mismo tipo (todo gastos o todo ingresos) para recategorizar juntos.'); return; }
+  const tipo = seleccionados[0].tipo;
+  let personaParaOpciones = seleccionados[0].persona;
+  if(tipo === 'Ingreso'){
+    const personas = new Set(seleccionados.map(m => m.persona));
+    if(personas.size > 1){ showToast('Los ingresos de Sergio y Carmen tienen categorías distintas — selecciona movimientos de una sola persona.'); return; }
+  }
+  $('#bulk-recat-sub').textContent = seleccionados.length === 1
+    ? 'Se aplicará la categoría elegida a 1 movimiento seleccionado.'
+    : `Se aplicará la categoría elegida a los ${seleccionados.length} movimientos seleccionados.`;
+  syncCategoriaSelect($('#bulk-recat-categoria'), tipo, personaParaOpciones);
+  $('#modal-bulk-recat').classList.add('show');
+});
+$('#close-modal-bulk-recat').addEventListener('click', () => $('#modal-bulk-recat').classList.remove('show'));
+$('#modal-bulk-recat').addEventListener('click', (e) => { if(e.target.id === 'modal-bulk-recat') $('#modal-bulk-recat').classList.remove('show'); });
+
+$('#form-bulk-recat').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nueva = $('#bulk-recat-categoria').value;
+  const ids = Array.from(state.movsSelIds);
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Aplicando…';
+  try{
+    const now = new Date().toISOString();
+    await Promise.all(ids.map(async id => {
+      const snap = await state.db.doc('movimientos/'+id).get();
+      if(!snap.exists) return;
+      const data = snap.data();
+      if(data.categoria === nueva) return;
+      await state.db.doc('movimientos/'+id).set(Object.assign({}, data, { categoria: nueva, editadoPor: state.user, editadoEn: now }));
+    }));
+    showToast(`Categoría actualizada en ${ids.length} movimiento${ids.length===1?'':'s'} ✓`);
+    $('#modal-bulk-recat').classList.remove('show');
+    setMovsSelMode(false);
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo recategorizar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Aplicar a todos';
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('#movs-bulk-eliminar');
+  if(!del) return;
+  const ids = Array.from(state.movsSelIds);
+  if(!ids.length) return;
+  if(del.classList.contains('confirm')){
+    del.textContent = '…';
+    try{ await eliminarMovsConDeshacer(ids); setMovsSelMode(false); }
+    catch(err){ console.error(err); showToast('No se pudo eliminar.'); del.classList.remove('confirm'); del.textContent = '🗑 Eliminar'; }
+  } else {
+    del.classList.add('confirm'); del.textContent = '¿Seguro? Toca de nuevo';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent = '🗑 Eliminar'; } }, 3000);
+  }
+});
+
 /* delete movement (tap-to-confirm) */
 document.addEventListener('click', async (e) => {
   const del = e.target.closest('.mov-del[data-id]');
@@ -2865,6 +3155,74 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+/* ================= Préstamos y deudas ================= */
+$('#btn-add-deuda').addEventListener('click', () => {
+  $('#form-deuda').reset();
+  syncCategoriaSelect($('#deuda-categoria'), 'Gasto', null);
+  $('#modal-deuda').classList.add('show');
+});
+$('#close-modal-deuda').addEventListener('click', () => $('#modal-deuda').classList.remove('show'));
+$('#modal-deuda').addEventListener('click', (e) => { if(e.target.id === 'modal-deuda') $('#modal-deuda').classList.remove('show'); });
+
+$('#form-deuda').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nombre = $('#deuda-nombre').value.trim();
+  const categoria = $('#deuda-categoria').value;
+  const objetivo = parseFloat($('#deuda-objetivo').value);
+  const pagadoInicial = parseFloat($('#deuda-pagado').value) || 0;
+  const fechaObjetivo = $('#deuda-fecha').value || null;
+  if(!nombre || !categoria || !(objetivo > 0)){ showToast('Revisa el nombre, la categoría y la deuda total.'); return; }
+  if(pagadoInicial < 0 || pagadoInicial > objetivo){ showToast('"Ya pagado hasta hoy" debe estar entre 0 y la deuda total.'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await state.db.collection('deudas').add({
+      nombre, categoria, objetivo: Math.round(objetivo*100)/100, pagadoInicial: Math.round(pagadoInicial*100)/100,
+      fechaObjetivo, mesCreacion: todayISO().slice(0,7), saldada: false,
+      creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    showToast('Deuda creada ✓');
+    $('#modal-deuda').classList.remove('show');
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Crear';
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const toggle = e.target.closest('[data-deuda-toggle]');
+  if(!toggle) return;
+  const id = toggle.getAttribute('data-deuda-toggle');
+  const deuda = state.deudas.find(d => d.id === id);
+  if(!deuda) return;
+  try{
+    await state.db.doc('deudas/'+id).set({
+      nombre: deuda.nombre, categoria: deuda.categoria, objetivo: deuda.objetivo,
+      pagadoInicial: deuda.pagadoInicial || 0, fechaObjetivo: deuda.fechaObjetivo || null,
+      mesCreacion: deuda.mesCreacion, creadoPor: deuda.creadoPor, creadoEn: deuda.creadoEn,
+      saldada: !deuda.saldada
+    });
+  }catch(err){ console.error(err); showToast('No se pudo actualizar.'); }
+});
+
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-deuda-del]');
+  if(!del) return;
+  if(del.classList.contains('confirm')){
+    const id = del.getAttribute('data-deuda-del');
+    del.textContent = '…';
+    try{ await state.db.doc('deudas/'+id).delete(); showToast('Deuda eliminada'); }
+    catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
+  } else {
+    $all('.meta-del.confirm').forEach(x => { x.classList.remove('confirm'); x.textContent = 'Eliminar'; });
+    del.classList.add('confirm'); del.textContent = 'Confirmar';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent = 'Eliminar'; } }, 3000);
+  }
+});
+
 /* ================= Exportar a CSV ================= */
 // Punto y coma como separador y coma decimal: así el CSV lo abre Excel en
 // español directamente en columnas, sin tener que importarlo a mano.
@@ -2903,6 +3261,7 @@ $('#btn-backup').addEventListener('click', () => {
     recurrentes: state.recurrentes,
     presupuestos: state.presupuestos,
     metas: state.metas,
+    deudas: state.deudas,
   };
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], {type:'application/json;charset=utf-8;'});
@@ -2926,6 +3285,12 @@ function validarBackup(obj){
   if(!obj.presupuestos || typeof obj.presupuestos !== 'object' || Array.isArray(obj.presupuestos)){
     return 'El archivo no tiene un campo "presupuestos" válido -- ¿es una copia de seguridad de esta app?';
   }
+  // "deudas" es más nueva que el resto de campos: las copias de seguridad
+  // descargadas antes de esta ronda no la traerán, y eso no debe invalidar
+  // el archivo -- solo comprobamos su forma si de verdad está presente.
+  if(obj.deudas !== undefined && !Array.isArray(obj.deudas)){
+    return 'El archivo no tiene un campo "deudas" válido -- ¿es una copia de seguridad de esta app?';
+  }
   return null;
 }
 
@@ -2937,6 +3302,7 @@ function resumenRestaurarHTML(backup){
     [conId(backup.recurrentes), 'recurrentes'],
     [Object.keys(backup.presupuestos).length, 'presupuestos'],
     [conId(backup.metas), 'metas de ahorro'],
+    [conId(backup.deudas || []), 'préstamos/deudas'],
   ];
   const filas = items.map(([n,label]) => `<div class="rec-row"><div class="rec-main"><div class="rec-concepto">${n} ${escapeHTML(label)}</div></div></div>`).join('');
   const fecha = backup.exportadoEn ? ' de la copia del ' + fmtDate(String(backup.exportadoEn).slice(0,10)) : '';
@@ -2984,6 +3350,7 @@ $('#btn-restaurar-confirmar').addEventListener('click', async () => {
       escribirConId('liquidaciones', backup.liquidaciones),
       escribirConId('recurrentes', backup.recurrentes),
       escribirConId('metas', backup.metas),
+      escribirConId('deudas', backup.deudas || []),
       Promise.all(Object.entries(backup.presupuestos).map(([categoria, val]) => state.db.doc('presupuestos/' + categoria).set(val))),
     ]);
     showToast('Datos restaurados ✓');
