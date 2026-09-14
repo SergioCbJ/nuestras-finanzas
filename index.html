@@ -218,6 +218,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .mov-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .badge{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:6px;}
 .badge.compartido{background:var(--tint-ahorro);color:var(--c-ahorro);}
+.badge.casa{background:var(--tint-ahorro);color:var(--c-ahorro);}
 .mov-amount{font-weight:800;font-size:14.5px;flex:none;font-variant-numeric:tabular-nums;}
 .mov-amount.ingreso{color:var(--c-ingreso);}
 .mov-amount.gasto{color:var(--c-gasto);}
@@ -424,6 +425,10 @@ nav.bottom button.active{color:var(--c-ahorro);}
             <div class="field" style="margin-bottom:6px;">
               <label for="in-concepto">Concepto</label>
               <input type="text" id="in-concepto" placeholder="p. ej. Mercadona" required maxlength="80">
+            </div>
+            <div class="field" id="row-proyecto-add" style="margin-bottom:12px;display:none;">
+              <label for="in-proyecto">Proyecto (opcional)</label>
+              <select id="in-proyecto"></select>
             </div>
             <div class="toggle-row" id="row-compartido">
               <span class="field-label">Gasto compartido</span>
@@ -884,6 +889,10 @@ nav.bottom button.active{color:var(--c-ahorro);}
         <div class="field" style="margin-bottom:6px;">
           <label for="edit-concepto">Concepto</label>
           <input type="text" id="edit-concepto" required maxlength="80">
+        </div>
+        <div class="field" id="row-proyecto-edit" style="margin-bottom:12px;display:none;">
+          <label for="edit-proyecto">Proyecto (opcional)</label>
+          <select id="edit-proyecto"></select>
         </div>
         <div class="toggle-row" id="edit-row-compartido">
           <span class="field-label">Gasto compartido</span>
@@ -1676,6 +1685,32 @@ function renderAll(){
   renderRecurrentes();
   renderGastosFijosPendientes();
   renderProyectos();
+  syncProyectoSelects();
+}
+
+/* Selector opcional de proyecto en Añadir/Editar movimiento -- se mantiene
+   sincronizado en cada renderAll() y se oculta del todo mientras no exista
+   ningún proyecto, para no ensuciar el formulario a quien no usa Proyectos. */
+function syncProyectoSelects(){
+  const opciones = state.proyectos.slice().sort((a,b) => a.nombre.localeCompare(b.nombre));
+  const hayProyectos = opciones.length > 0;
+  const llenar = (selEl) => {
+    if(!selEl) return;
+    const cur = selEl.value;
+    selEl.innerHTML = '<option value="">— Ninguno —</option>' + opciones.map(p => `<option value="${escapeHTML(p.id)}">🚀 ${escapeHTML(p.nombre)}</option>`).join('');
+    if(opciones.some(p => p.id === cur)) selEl.value = cur;
+  };
+  llenar($('#in-proyecto'));
+  llenar($('#edit-proyecto'));
+  const rowAdd = $('#row-proyecto-add'), rowEdit = $('#row-proyecto-edit');
+  if(rowAdd) rowAdd.style.display = hayProyectos ? 'block' : 'none';
+  if(rowEdit) rowEdit.style.display = hayProyectos ? 'block' : 'none';
+}
+
+function proyectoNombre(id){
+  if(!id) return null;
+  const p = state.proyectos.find(x => x.id === id);
+  return p ? p.nombre : null;
 }
 
 function populateMonthSelectors(){
@@ -1739,12 +1774,13 @@ function movRowHTML(m, showPersona, selMode){
   const catIdx = CATEGORIAS_GASTO.indexOf(m.categoria);
   const color = m.tipo==='Gasto' ? `var(--${CAT_PALETTE[catIdx % CAT_PALETTE.length] || 'neutral'})` : 'var(--c-ingreso)';
   const checked = state.movsSelIds.has(m.id);
+  const nombreProyecto = proyectoNombre(m.proyectoId);
   return `<div class="mov-row" data-id="${m.id}">
     ${selMode ? `<input type="checkbox" class="mov-select-cb" data-sel-id="${m.id}"${checked?' checked':''}>` : ''}
     <div class="mov-cat-dot" style="background:${color}"></div>
     <div class="mov-main">
       <div class="mov-concepto">${escapeHTML(m.concepto || m.categoria)}</div>
-      <div class="mov-meta">${catIcon(m.categoria)} ${escapeHTML(m.categoria)} · ${fmtDate(m.fecha)}${showPersona ? ' · '+m.persona : ''}${m.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}</div>
+      <div class="mov-meta">${catIcon(m.categoria)} ${escapeHTML(m.categoria)} · ${fmtDate(m.fecha)}${showPersona ? ' · '+m.persona : ''}${m.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}${nombreProyecto ? ` · <span class="badge" style="background:${proyectoColor(m.proyectoId)};color:#fff;">🚀 ${escapeHTML(nombreProyecto)}</span>` : ''}</div>
     </div>
     <div class="mov-amount ${m.tipo==='Ingreso'?'ingreso':'gasto'}">${m.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(m.importe)}</div>
     ${!selMode && m.ticketData ? `<button class="mov-ticket" data-ticket-view="${m.id}" title="Ver ticket">🧾</button>` : ''}
@@ -2696,6 +2732,7 @@ document.addEventListener('click', async (e) => {
     await state.db.collection('movimientos').add({
       fecha, mes: mesOf(fecha), tipo: r.tipo, persona: r.persona, categoria: r.categoria,
       concepto: r.concepto, compartido: r.compartido, importe: r.importe, obs: r.obs || '',
+      proyectoId: r.proyectoId || null,
       recurrenteId: r.id, creadoPor: state.user, creadoEn: new Date().toISOString()
     });
     showToast('Movimiento añadido ✓');
@@ -2870,6 +2907,7 @@ function openEditModal(id){
   $('#edit-importe').value = m.importe;
   $('#edit-fecha').value = m.fecha;
   $('#edit-concepto').value = m.concepto || '';
+  $('#edit-proyecto').value = m.proyectoId || '';
   $('#edit-compartido').checked = !!m.compartido;
   $('#edit-obs').value = m.obs || '';
   ticketEdit = m.ticketData ? { data: m.ticketData, nombre: m.ticketNombre || '' } : null;
@@ -2958,6 +2996,7 @@ $('#form-edit-mov').addEventListener('submit', async (e) => {
   const fecha = $('#edit-fecha').value;
   const categoria = $('#edit-categoria').value;
   const concepto = $('#edit-concepto').value.trim();
+  const proyectoId = $('#edit-proyecto').value || null;
   const compartido = tipo === 'Gasto' && $('#edit-compartido').checked;
   const obs = $('#edit-obs').value.trim();
   if(!(importe > 0) || !fecha || !categoria || !concepto){ showToast('Revisa los campos: falta algo.'); return; }
@@ -2967,6 +3006,7 @@ $('#form-edit-mov').addEventListener('submit', async (e) => {
   try{
     await state.db.doc('movimientos/'+id).set({
       fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+      proyectoId,
       ticketData: ticketEdit ? ticketEdit.data : null, ticketNombre: ticketEdit ? ticketEdit.nombre : null,
       creadoPor: original.creadoPor, creadoEn: original.creadoEn,
       recurrenteId: original.recurrenteId || null,
@@ -3007,6 +3047,7 @@ $('#form-add').addEventListener('submit', async (e) => {
   const fecha = $('#in-fecha').value;
   const categoria = $('#in-categoria').value;
   const concepto = $('#in-concepto').value.trim();
+  const proyectoId = $('#in-proyecto').value || null;
   const compartido = tipo === 'Gasto' && $('#in-compartido').checked;
   const obs = $('#in-obs').value.trim();
   const repetir = $('#in-recurrente').checked;
@@ -3020,12 +3061,17 @@ $('#form-add').addEventListener('submit', async (e) => {
     if(repetir){
       const rec = await state.db.collection('recurrentes').add({
         tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+        proyectoId,
         activo: true, creadoPor: state.user, creadoEn: new Date().toISOString()
       });
       recurrenteId = rec.id;
     }
+    // proyectoId es opcional y no cambia en nada cómo se guarda ni cuenta este
+    // movimiento en el resumen general -- solo hace que, además, aparezca
+    // también en el seguimiento de ese proyecto (pestaña Proyectos).
     await state.db.collection('movimientos').add({
       fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
+      proyectoId,
       ticketData: ticketAdd ? ticketAdd.data : null, ticketNombre: ticketAdd ? ticketAdd.nombre : null,
       recurrenteId, creadoPor: state.user, creadoEn: new Date().toISOString()
     });
@@ -3033,6 +3079,7 @@ $('#form-add').addEventListener('submit', async (e) => {
     $('#in-importe').value = ''; $('#in-concepto').value = ''; $('#in-obs').value = '';
     $('#in-compartido').checked = false;
     $('#in-recurrente').checked = false;
+    $('#in-proyecto').value = '';
     $('#in-fecha').value = todayISO();
     ticketAdd = null; setTicketChip('add', null);
     $('#in-importe').focus();
@@ -3235,11 +3282,17 @@ function proyectoColor(id){
 
 function proyectoMensual(proyectoId){
   const map = {};
-  state.proyectoMovs.forEach(m => {
-    if(m.proyectoId !== proyectoId) return;
-    if(!map[m.mes]) map[m.mes] = {ing:0, gas:0};
-    if(m.tipo === 'Ingreso') map[m.mes].ing += m.importe; else map[m.mes].gas += m.importe;
-  });
+  const acumula = (mes, tipo, importe) => {
+    if(!map[mes]) map[mes] = {ing:0, gas:0};
+    if(tipo === 'Ingreso') map[mes].ing += importe; else map[mes].gas += importe;
+  };
+  // Dos fuentes: los movimientos propios del proyecto (proyectoMovs, añadidos
+  // desde esta misma pestaña) y los movimientos "de la casa" que se marcaron
+  // con este proyecto desde el formulario principal de Añadir/Editar -- esos
+  // siguen contando en el resumen general exactamente igual que siempre, y
+  // AQUÍ ADEMÁS se suman al seguimiento del proyecto.
+  state.proyectoMovs.forEach(m => { if(m.proyectoId === proyectoId) acumula(m.mes, m.tipo, m.importe); });
+  state.movimientos.forEach(m => { if(m.proyectoId === proyectoId) acumula(m.mes, m.tipo, m.importe); });
   return Object.entries(map)
     .map(([mes,v]) => ({mes, ing:v.ing, gas:v.gas, beneficio:v.ing-v.gas}))
     .sort((a,b) => b.mes.localeCompare(a.mes));
@@ -3256,14 +3309,23 @@ function proyectoTbodyHTML(proyectoId){
 }
 
 function proyectoMovRowHTML(m){
+  // m._origen distingue las dos fuentes que fusiona proyectoMensual():
+  // 'propio' = proyectoMovs (solo vive en Proyectos, se puede eliminar del
+  // todo); 'casa' = un movimiento real de Movimientos marcado con este
+  // proyecto -- aquí solo se puede "quitar del proyecto" (desmarcarlo), NUNCA
+  // eliminarlo, porque eso borraría un movimiento real de la casa.
+  const esCasa = m._origen === 'casa';
+  const accion = esCasa
+    ? `<button class="mov-del" data-proymov-unlink="${m.id}" title="Quitar de este proyecto (el movimiento se mantiene en Movimientos)">🔗</button>`
+    : `<button class="mov-del" data-proymov-del="${m.id}" title="Eliminar">🗑</button>`;
   return `<div class="mov-row" data-id="${m.id}">
     <div class="mov-cat-dot" style="background:${m.tipo==='Ingreso' ? 'var(--c-ingreso)' : 'var(--c-gasto)'}"></div>
     <div class="mov-main">
-      <div class="mov-concepto">${escapeHTML(m.concepto)}</div>
-      <div class="mov-meta">${fmtDate(m.fecha)}</div>
+      <div class="mov-concepto">${escapeHTML(m.concepto || m.categoria || '')}</div>
+      <div class="mov-meta">${fmtDate(m.fecha)}${esCasa ? ' · <span class="badge casa">Movimiento de la casa</span>' : ''}</div>
     </div>
     <div class="mov-amount ${m.tipo==='Ingreso'?'ingreso':'gasto'}">${m.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(m.importe)}</div>
-    <button class="mov-del" data-proymov-del="${m.id}" title="Eliminar">🗑</button>
+    ${accion}
   </div>`;
 }
 
@@ -3303,9 +3365,9 @@ function renderProyectos(){
   $('#proyecto-actual-nombre').textContent = actual ? actual.nombre : '—';
   $('#proyecto-tbody').innerHTML = proyectoTbodyHTML(state.proyectoSel);
 
-  const movs = state.proyectoMovs
-    .filter(m => m.proyectoId === state.proyectoSel)
-    .sort((a,b) => b.fecha.localeCompare(a.fecha) || String(b.id).localeCompare(String(a.id)));
+  const movsPropios = state.proyectoMovs.filter(m => m.proyectoId === state.proyectoSel).map(m => Object.assign({_origen:'propio'}, m));
+  const movsCasa = state.movimientos.filter(m => m.proyectoId === state.proyectoSel).map(m => Object.assign({_origen:'casa'}, m));
+  const movs = movsPropios.concat(movsCasa).sort((a,b) => b.fecha.localeCompare(a.fecha) || String(b.id).localeCompare(String(a.id)));
   $('#proyecto-movs-list').innerHTML = movs.length
     ? movs.map(proyectoMovRowHTML).join('')
     : '<div class="empty-hint">Aún no hay movimientos en este proyecto.</div>';
@@ -3399,6 +3461,25 @@ document.addEventListener('click', async (e) => {
     del.classList.add('confirm'); del.textContent = 'Confirmar';
     setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent='🗑'; } }, 3000);
   }
+});
+
+/* "Quitar del proyecto" un movimiento de la casa: a diferencia de eliminar,
+   esto NUNCA borra el movimiento -- solo le quita el proyectoId, así que no
+   necesita el toca-para-confirmar (es una acción reversible: se puede volver
+   a asociar en cualquier momento desde Editar movimiento). */
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.mov-del[data-proymov-unlink]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-proymov-unlink');
+  const m = state.movimientos.find(x => x.id === id);
+  if(!m) return;
+  const datos = Object.assign({}, m);
+  delete datos.id;
+  datos.proyectoId = null;
+  try{
+    await state.db.doc('movimientos/'+id).set(datos);
+    showToast('Quitado del proyecto (el movimiento se mantiene en Movimientos)');
+  }catch(err){ console.error(err); showToast('No se pudo actualizar.'); }
 });
 
 document.addEventListener('click', async (e) => {
