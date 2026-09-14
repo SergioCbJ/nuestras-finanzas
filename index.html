@@ -198,7 +198,8 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .mp-table td.col-ing{background:var(--tint-ingreso);}
 .mp-table td.col-gas{background:var(--tint-gasto);}
 .mp-table td.col-ahorro{background:var(--tint-ahorro);}
-.mp-table tr.total td.col-ing,.mp-table tr.total td.col-gas,.mp-table tr.total td.col-ahorro{background:var(--tint-ahorro);}
+.mp-table td.col-beneficio{background:var(--tint-ahorro);}
+.mp-table tr.total td.col-ing,.mp-table tr.total td.col-gas,.mp-table tr.total td.col-ahorro,.mp-table tr.total td.col-beneficio{background:var(--tint-ahorro);}
 
 /* ---------- Category bars ---------- */
 .cat-row{display:flex;align-items:center;gap:10px;padding:7px 0;}
@@ -659,6 +660,69 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="liq-list"></div>
         </div>
       </section>
+
+      <!-- ===================== PROYECTOS ===================== -->
+      <section class="view" id="view-proyectos">
+        <div class="row-between" style="margin-bottom:12px;">
+          <div class="section-title" style="margin-bottom:0;">Proyectos</div>
+          <button type="button" class="link-btn" id="btn-add-proyecto">➕ Nuevo</button>
+        </div>
+
+        <div class="cat-chip-picker" id="proyectos-picker"></div>
+
+        <div id="proyectos-vacio" class="card" style="display:none;">
+          <div class="empty-hint">🚀 Aún no tienes proyectos. Pulsa "➕ Nuevo" para crear el primero y llevar aparte sus gastos y beneficios, mes a mes.</div>
+        </div>
+
+        <div id="proyectos-detalle" style="display:none;">
+          <div class="card">
+            <div class="row-between" style="margin-bottom:2px;">
+              <div class="section-title" style="margin-bottom:0;" id="proyecto-actual-nombre">—</div>
+              <div class="meta-actions" style="margin:0;">
+                <button type="button" class="danger" id="btn-del-proyecto">🗑 Eliminar proyecto</button>
+              </div>
+            </div>
+            <p class="screen-sub" style="text-align:left;font-size:12px;margin:2px 0 12px;">Estos gastos e ingresos son solo de este proyecto — no afectan a vuestro resumen general de ingresos y gastos.</p>
+            <table class="mp-table">
+              <thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Beneficio</th></tr></thead>
+              <tbody id="proyecto-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="section-title">Añadir movimiento del proyecto</div>
+            <form id="form-proyecto-mov">
+              <div class="field" style="margin-bottom:12px;">
+                <label>Tipo</label>
+                <div class="segmented tipo" id="seg-proy-tipo">
+                  <button type="button" data-val="Gasto" class="active">Gasto</button>
+                  <button type="button" data-val="Ingreso">Ingreso</button>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div class="field">
+                  <label for="proy-importe">Importe</label>
+                  <div class="amount-input"><input type="number" id="proy-importe" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required></div>
+                </div>
+                <div class="field">
+                  <label for="proy-fecha">Fecha</label>
+                  <input type="date" id="proy-fecha" required>
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:14px;">
+                <label for="proy-concepto">Concepto</label>
+                <input type="text" id="proy-concepto" placeholder="p. ej. Dominio y hosting" required maxlength="80">
+              </div>
+              <button type="submit" class="btn btn-primary">Guardar movimiento</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="section-title">Movimientos del proyecto</div>
+            <div id="proyecto-movs-list"></div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -668,6 +732,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
       <button data-view="movs"><span class="ic">📋</span><span class="lb">Movimientos</span></button>
       <button data-view="resumen"><span class="ic">📊</span><span class="lb">Resumen</span></button>
       <button data-view="saldo"><span class="ic">⚖️</span><span class="lb">Saldo</span></button>
+      <button data-view="proyectos"><span class="ic">🚀</span><span class="lb">Proyectos</span></button>
     </div>
   </nav>
 
@@ -751,6 +816,20 @@ nav.bottom button.active{color:var(--c-ahorro);}
         </div>
         <p class="screen-sub" style="text-align:left;font-size:12px;margin-bottom:14px;">A partir de ahora, cada movimiento de gasto que registres en esa categoría cuenta como pago de esta deuda — súmalo a "Ya pagado hasta hoy" si ya venías pagándola antes.</p>
         <button type="submit" class="btn btn-primary">Crear</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-proyecto">
+    <div class="modal-sheet">
+      <div class="modal-head"><h3>Nuevo proyecto</h3><button id="close-modal-proyecto">✕</button></div>
+      <form id="form-proyecto">
+        <div class="field" style="margin-bottom:14px;">
+          <label for="proyecto-nombre">Nombre</label>
+          <input type="text" id="proyecto-nombre" maxlength="60" placeholder="p. ej. Tienda online" required>
+        </div>
+        <p class="screen-sub" style="text-align:left;font-size:12px;margin-bottom:14px;">Sus gastos e ingresos se llevan aparte — no afectan a vuestro resumen general.</p>
+        <button type="submit" class="btn btn-primary">Crear proyecto</button>
       </form>
     </div>
   </div>
@@ -988,6 +1067,9 @@ const state = {
   presupuestos: {},
   metas: [],
   deudas: [],
+  proyectos: [],
+  proyectoMovs: [],
+  proyectoSel: null,
 };
 
 function $(sel){ return document.querySelector(sel); }
@@ -1336,6 +1418,19 @@ function subscribeData(db){
     state.deudas = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
     renderAll();
   }, err => { console.error('deudas onSnapshot', err); });
+
+  // Proyectos: colecciones propias, aisladas a propósito -- ningún cálculo del
+  // resumen general (monthStats, catBreakdown, resumenAnual, previsión, KPIs,
+  // saldo...) las lee jamás, así que no pueden afectar al conteo de la casa.
+  db.collection('proyectos').onSnapshot(snap => {
+    state.proyectos = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('proyectos onSnapshot', err); });
+
+  db.collection('proyectoMovs').onSnapshot(snap => {
+    state.proyectoMovs = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('proyectoMovs onSnapshot', err); });
 }
 
 /* ================= Derived data ================= */
@@ -1580,6 +1675,7 @@ function renderAll(){
   renderSaldo();
   renderRecurrentes();
   renderGastosFijosPendientes();
+  renderProyectos();
 }
 
 function populateMonthSelectors(){
@@ -2714,7 +2810,7 @@ $('#view-add').classList.add('active');
    app instalada permite abrirla ya en una vista concreta, vía ?view=xxx. */
 (function aplicarAccesoDirecto(){
   const target = new URLSearchParams(location.search).get('view');
-  if(target && ['add','movs','resumen','saldo'].includes(target)) goToView(target);
+  if(target && ['add','movs','resumen','saldo','proyectos'].includes(target)) goToView(target);
 })();
 
 /* ================= Add-movement form ================= */
@@ -3126,6 +3222,211 @@ document.addEventListener('click', (e) => {
   tip.classList.add('show');
 });
 
+/* ================= Proyectos =================
+   A propósito totalmente aislado de movimientos/liquidaciones: usa sus propias
+   colecciones (proyectos, proyectoMovs) y ninguna función del resumen general
+   (monthStats, catBreakdown, resumenAnual, previsionGastoMes, comparativas,
+   KPIs, saldo/liquidaciones...) las lee nunca -- así estos gastos/beneficios
+   por proyecto no afectan al conteo general de ingresos y gastos de la casa. */
+function proyectoColor(id){
+  const idx = state.proyectos.findIndex(p => p.id === id);
+  return `var(--${CAT_PALETTE[idx % CAT_PALETTE.length] || 'neutral'})`;
+}
+
+function proyectoMensual(proyectoId){
+  const map = {};
+  state.proyectoMovs.forEach(m => {
+    if(m.proyectoId !== proyectoId) return;
+    if(!map[m.mes]) map[m.mes] = {ing:0, gas:0};
+    if(m.tipo === 'Ingreso') map[m.mes].ing += m.importe; else map[m.mes].gas += m.importe;
+  });
+  return Object.entries(map)
+    .map(([mes,v]) => ({mes, ing:v.ing, gas:v.gas, beneficio:v.ing-v.gas}))
+    .sort((a,b) => b.mes.localeCompare(a.mes));
+}
+
+function proyectoTbodyHTML(proyectoId){
+  const filas = proyectoMensual(proyectoId);
+  if(!filas.length) return '<tr><td colspan="4"><div class="empty-hint">Aún no hay movimientos.</div></td></tr>';
+  const totalIng = filas.reduce((s,f) => s+f.ing, 0);
+  const totalGas = filas.reduce((s,f) => s+f.gas, 0);
+  const filaTotal = `<tr class="total"><td>Total</td><td class="col-ing">${fmtEUR0.format(totalIng)}</td><td class="col-gas">${fmtEUR0.format(totalGas)}</td><td class="col-beneficio">${fmtEUR0.format(totalIng-totalGas)}</td></tr>`;
+  const filasMes = filas.map(f => `<tr><td>${escapeHTML(mesLabel(f.mes))}</td><td class="col-ing">${fmtEUR0.format(f.ing)}</td><td class="col-gas">${fmtEUR0.format(f.gas)}</td><td class="col-beneficio">${fmtEUR0.format(f.beneficio)}</td></tr>`).join('');
+  return filaTotal + filasMes;
+}
+
+function proyectoMovRowHTML(m){
+  return `<div class="mov-row" data-id="${m.id}">
+    <div class="mov-cat-dot" style="background:${m.tipo==='Ingreso' ? 'var(--c-ingreso)' : 'var(--c-gasto)'}"></div>
+    <div class="mov-main">
+      <div class="mov-concepto">${escapeHTML(m.concepto)}</div>
+      <div class="mov-meta">${fmtDate(m.fecha)}</div>
+    </div>
+    <div class="mov-amount ${m.tipo==='Ingreso'?'ingreso':'gasto'}">${m.tipo==='Ingreso'?'+':'-'}${fmtEUR.format(m.importe)}</div>
+    <button class="mov-del" data-proymov-del="${m.id}" title="Eliminar">🗑</button>
+  </div>`;
+}
+
+function renderProyectos(){
+  if(!state.user) return;
+  const proyectosOrdenados = state.proyectos.slice().sort((a,b) => (a.creadoEn||'').localeCompare(b.creadoEn||''));
+
+  if(!proyectosOrdenados.length){
+    state.proyectoSel = null;
+    $('#proyectos-picker').innerHTML = '';
+    $('#proyectos-vacio').style.display = 'block';
+    $('#proyectos-detalle').style.display = 'none';
+    return;
+  }
+  if(!state.proyectoSel || !proyectosOrdenados.some(p => p.id === state.proyectoSel)){
+    state.proyectoSel = proyectosOrdenados[proyectosOrdenados.length-1].id;
+  }
+
+  $('#proyectos-picker').innerHTML = proyectosOrdenados.map(p => {
+    const active = p.id === state.proyectoSel;
+    const style = active ? `background:${proyectoColor(p.id)};` : '';
+    return `<button type="button" class="cat-chip${active?' active':''}" style="${style}" data-proyecto-sel="${p.id}">🚀 ${escapeHTML(p.nombre)}</button>`;
+  }).join('');
+
+  $('#proyectos-vacio').style.display = 'none';
+  $('#proyectos-detalle').style.display = 'block';
+
+  // #btn-del-proyecto es un elemento estático (no se recrea al re-renderizar):
+  // si no reseteamos aquí su posible estado "a medio confirmar", ese estado se
+  // quedaría pegado al cambiar de proyecto -- el mismo tipo de fallo que ya
+  // tuvimos con la barra de selección múltiple de Movimientos.
+  const delBtn = $('#btn-del-proyecto');
+  delBtn.classList.remove('confirm');
+  delBtn.textContent = '🗑 Eliminar proyecto';
+
+  const actual = state.proyectos.find(p => p.id === state.proyectoSel);
+  $('#proyecto-actual-nombre').textContent = actual ? actual.nombre : '—';
+  $('#proyecto-tbody').innerHTML = proyectoTbodyHTML(state.proyectoSel);
+
+  const movs = state.proyectoMovs
+    .filter(m => m.proyectoId === state.proyectoSel)
+    .sort((a,b) => b.fecha.localeCompare(a.fecha) || String(b.id).localeCompare(String(a.id)));
+  $('#proyecto-movs-list').innerHTML = movs.length
+    ? movs.map(proyectoMovRowHTML).join('')
+    : '<div class="empty-hint">Aún no hay movimientos en este proyecto.</div>';
+}
+
+$('#btn-add-proyecto').addEventListener('click', () => {
+  $('#form-proyecto').reset();
+  $('#modal-proyecto').classList.add('show');
+});
+$('#close-modal-proyecto').addEventListener('click', () => $('#modal-proyecto').classList.remove('show'));
+$('#modal-proyecto').addEventListener('click', (e) => { if(e.target.id === 'modal-proyecto') $('#modal-proyecto').classList.remove('show'); });
+
+$('#form-proyecto').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nombre = $('#proyecto-nombre').value.trim();
+  if(!nombre){ showToast('Ponle un nombre al proyecto.'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Creando…';
+  try{
+    const ref = await state.db.collection('proyectos').add({
+      nombre, creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    // El snapshot de 'proyectos' se dispara EN SÍNCRONO dentro de add(), antes
+    // de que esta función retome tras el await -- así que ese primer render ya
+    // ha pasado con el proyectoSel antiguo y no se repite solo. Sin este
+    // renderProyectos() explícito, el recién creado se guarda bien pero el
+    // selector se queda mostrando el proyecto anterior hasta el próximo cambio.
+    state.proyectoSel = ref.id;
+    renderProyectos();
+    showToast('Proyecto creado ✓');
+    $('#modal-proyecto').classList.remove('show');
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Crear proyecto';
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('#proyectos-picker [data-proyecto-sel]');
+  if(!chip) return;
+  state.proyectoSel = chip.getAttribute('data-proyecto-sel');
+  renderProyectos();
+});
+
+$all('#seg-proy-tipo button').forEach(b => b.addEventListener('click', () => {
+  $all('#seg-proy-tipo button').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+}));
+
+$('#form-proyecto-mov').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(!state.proyectoSel){ showToast('Crea antes un proyecto.'); return; }
+  const tipo = $('#seg-proy-tipo button.active').getAttribute('data-val');
+  const importe = parseFloat($('#proy-importe').value);
+  const fecha = $('#proy-fecha').value;
+  const concepto = $('#proy-concepto').value.trim();
+  if(!(importe > 0) || !fecha || !concepto){ showToast('Revisa el importe, la fecha y el concepto.'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await state.db.collection('proyectoMovs').add({
+      proyectoId: state.proyectoSel, tipo, importe: Math.round(importe*100)/100,
+      fecha, mes: fecha.slice(0,7), concepto,
+      creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    showToast('Movimiento guardado ✓');
+    e.target.reset();
+    $all('#seg-proy-tipo button').forEach(x => x.classList.toggle('active', x.getAttribute('data-val')==='Gasto'));
+    $('#proy-fecha').value = fecha; // conserva la fecha puesta, por si se añaden varios seguidos del mismo día
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar movimiento';
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('.mov-del[data-proymov-del]');
+  if(!del) return;
+  if(del.classList.contains('confirm')){
+    const id = del.getAttribute('data-proymov-del');
+    del.textContent = '…';
+    try{ await state.db.doc('proyectoMovs/'+id).delete(); showToast('Movimiento eliminado'); }
+    catch(err){ console.error(err); showToast('No se pudo eliminar.'); }
+  } else {
+    $all('.mov-del.confirm[data-proymov-del]').forEach(x => { x.classList.remove('confirm'); x.textContent = '🗑'; });
+    del.classList.add('confirm'); del.textContent = 'Confirmar';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent='🗑'; } }, 3000);
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('#btn-del-proyecto');
+  if(!del) return;
+  const id = state.proyectoSel;
+  if(!id) return;
+  if(del.classList.contains('confirm')){
+    del.textContent = '…';
+    try{
+      const entradas = state.proyectoMovs.filter(m => m.proyectoId === id);
+      await Promise.all([
+        state.db.doc('proyectos/'+id).delete(),
+        ...entradas.map(m => state.db.doc('proyectoMovs/'+m.id).delete())
+      ]);
+      state.proyectoSel = null;
+      showToast('Proyecto eliminado');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo eliminar.');
+      del.classList.remove('confirm'); del.textContent = '🗑 Eliminar proyecto';
+    }
+  } else {
+    del.classList.add('confirm'); del.textContent = 'Confirmar eliminación';
+    setTimeout(() => { if(del.classList.contains('confirm')){ del.classList.remove('confirm'); del.textContent = '🗑 Eliminar proyecto'; } }, 3000);
+  }
+});
+
 /* ================= Metas de ahorro ================= */
 $('#btn-add-meta').addEventListener('click', () => {
   $('#form-meta').reset();
@@ -3304,6 +3605,8 @@ $('#btn-backup').addEventListener('click', () => {
     presupuestos: state.presupuestos,
     metas: state.metas,
     deudas: state.deudas,
+    proyectos: state.proyectos,
+    proyectoMovs: state.proyectoMovs,
   };
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], {type:'application/json;charset=utf-8;'});
@@ -3333,6 +3636,15 @@ function validarBackup(obj){
   if(obj.deudas !== undefined && !Array.isArray(obj.deudas)){
     return 'El archivo no tiene un campo "deudas" válido -- ¿es una copia de seguridad de esta app?';
   }
+  // "proyectos"/"proyectoMovs" son más nuevos que el resto: igual que pasó con
+  // "deudas", las copias descargadas antes de esta ronda no los traerán, y eso
+  // no debe invalidar el archivo -- solo comprobamos su forma si están presentes.
+  if(obj.proyectos !== undefined && !Array.isArray(obj.proyectos)){
+    return 'El archivo no tiene un campo "proyectos" válido -- ¿es una copia de seguridad de esta app?';
+  }
+  if(obj.proyectoMovs !== undefined && !Array.isArray(obj.proyectoMovs)){
+    return 'El archivo no tiene un campo "proyectoMovs" válido -- ¿es una copia de seguridad de esta app?';
+  }
   return null;
 }
 
@@ -3345,6 +3657,8 @@ function resumenRestaurarHTML(backup){
     [Object.keys(backup.presupuestos).length, 'presupuestos'],
     [conId(backup.metas), 'metas de ahorro'],
     [conId(backup.deudas || []), 'préstamos/deudas'],
+    [conId(backup.proyectos || []), 'proyectos'],
+    [conId(backup.proyectoMovs || []), 'movimientos de proyecto'],
   ];
   const filas = items.map(([n,label]) => `<div class="rec-row"><div class="rec-main"><div class="rec-concepto">${n} ${escapeHTML(label)}</div></div></div>`).join('');
   const fecha = backup.exportadoEn ? ' de la copia del ' + fmtDate(String(backup.exportadoEn).slice(0,10)) : '';
@@ -3393,6 +3707,8 @@ $('#btn-restaurar-confirmar').addEventListener('click', async () => {
       escribirConId('recurrentes', backup.recurrentes),
       escribirConId('metas', backup.metas),
       escribirConId('deudas', backup.deudas || []),
+      escribirConId('proyectos', backup.proyectos || []),
+      escribirConId('proyectoMovs', backup.proyectoMovs || []),
       Promise.all(Object.entries(backup.presupuestos).map(([categoria, val]) => state.db.doc('presupuestos/' + categoria).set(val))),
     ]);
     showToast('Datos restaurados ✓');
