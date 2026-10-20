@@ -219,6 +219,7 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .badge{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:6px;}
 .badge.compartido{background:var(--tint-ahorro);color:var(--c-ahorro);}
 .badge.casa{background:var(--tint-ahorro);color:var(--c-ahorro);}
+.badge.cuenta{background:var(--tint-alerta);color:var(--c-alerta);}
 .mov-amount{font-weight:800;font-size:14.5px;flex:none;font-variant-numeric:tabular-nums;}
 .mov-amount.ingreso{color:var(--c-ingreso);}
 .mov-amount.gasto{color:var(--c-gasto);}
@@ -284,6 +285,17 @@ main{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .rec-concepto{font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:break-word;}
 .rec-meta{font-size:12px;color:var(--muted);margin-top:2px;}
 .rec-amount{font-weight:800;font-size:13.5px;flex:none;font-variant-numeric:tabular-nums;color:var(--ink-soft);margin-right:2px;}
+/* ---------- Pagos detectados (Apple Pay / Google Wallet) ---------- */
+.pend-row{align-items:flex-start;}
+.pend-row .rec-amount{color:var(--c-gasto);padding-top:1px;}
+.pend-actions{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.pend-descartar{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 6px;margin-left:auto;}
+.pend-descartar.confirm{color:var(--c-alerta);font-weight:800;font-size:11.5px;}
+.pend-aviso{color:var(--c-alerta);font-weight:700;}
+.pend-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--tint-ahorro);color:var(--ink);border-radius:var(--radius-sm);padding:8px 10px;font-size:12.5px;line-height:1.35;margin-bottom:12px;}
+.pend-banner[hidden]{display:none;}
+.nav-badge{position:absolute;top:5px;left:calc(50% + 5px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--c-alerta);color:#fff;font-size:10px;font-weight:800;line-height:17px;text-align:center;}
+.nav-badge[hidden]{display:none;}
 
 /* ---------- Saldo view ---------- */
 .saldo-hero{text-align:center;padding:22px 12px;}
@@ -308,6 +320,7 @@ nav.bottom button{flex:1;background:none;border:none;padding:10px 4px 8px;displa
 nav.bottom button .ic{font-size:19px;}
 nav.bottom button .lb{font-size:10.5px;font-weight:700;}
 nav.bottom button.active{color:var(--c-ahorro);}
+nav.bottom button{position:relative;}
 
 /* ---------- Toast ---------- */
 #toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,12px);background:var(--ink);color:var(--surface);
@@ -378,6 +391,15 @@ nav.bottom button.active{color:var(--c-ahorro);}
     <main>
       <!-- ===================== AÑADIR ===================== -->
       <section class="view" id="view-add">
+        <div class="card" id="card-pendientes" style="display:none;">
+          <div class="row-between" style="margin-bottom:4px;">
+            <div class="section-title" style="margin-bottom:0;">📲 Pagos detectados</div>
+            <span class="badge cuenta" id="pendientes-count"></span>
+          </div>
+          <p class="screen-sub" style="text-align:left;max-width:none;font-size:12px;margin:0 0 4px;">Pagos hechos con el móvil. No cuentan en ningún sitio hasta que los guardes.</p>
+          <div id="pendientes-list"></div>
+        </div>
+
         <div class="card" id="card-recurrentes" style="display:none;">
           <div class="row-between" style="margin-bottom:10px;">
             <div class="section-title" style="margin-bottom:0;">Recurrentes de este mes</div>
@@ -391,8 +413,12 @@ nav.bottom button.active{color:var(--c-ahorro);}
           <div id="gastos-fijos-pendientes-list"></div>
         </div>
 
-        <div class="card">
+        <div class="card jump-target" id="card-form-add">
           <div class="section-title">Añadir movimiento</div>
+          <div class="pend-banner" id="banner-pendiente" hidden>
+            <span>📲 Completando pago detectado: <strong id="banner-pendiente-texto"></strong></span>
+            <button type="button" class="link-btn" id="btn-cancelar-pendiente">Cancelar</button>
+          </div>
           <form id="form-add">
             <div class="field" style="margin-bottom:12px;">
               <label>Tipo</label>
@@ -733,7 +759,7 @@ nav.bottom button.active{color:var(--c-ahorro);}
 
   <nav class="bottom" id="bottom-nav" style="display:none;">
     <div class="inner">
-      <button data-view="add" class="active"><span class="ic">➕</span><span class="lb">Añadir</span></button>
+      <button data-view="add" class="active"><span class="ic">➕</span><span class="lb">Añadir</span><span class="nav-badge" id="nav-badge-pend" hidden></span></button>
       <button data-view="movs"><span class="ic">📋</span><span class="lb">Movimientos</span></button>
       <button data-view="resumen"><span class="ic">📊</span><span class="lb">Resumen</span></button>
       <button data-view="saldo"><span class="ic">⚖️</span><span class="lb">Saldo</span></button>
@@ -1079,6 +1105,8 @@ const state = {
   proyectos: [],
   proyectoMovs: [],
   proyectoSel: null,
+  pendientes: [],          // pagos detectados por el móvil, aún sin revisar (colección "pendientes")
+  pendienteRevision: null, // {id, origen} mientras se completa uno en el formulario de Añadir
 };
 
 function $(sel){ return document.querySelector(sel); }
@@ -1440,6 +1468,14 @@ function subscribeData(db){
     state.proyectoMovs = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
     renderAll();
   }, err => { console.error('proyectoMovs onSnapshot', err); });
+
+  // Pagos detectados por el móvil (los escribe directamente el atajo del iPhone
+  // o la macro del Android, vía la API REST de Firestore). Son una bandeja de
+  // entrada: no cuentan en NINGÚN cálculo hasta que se guardan como movimiento.
+  db.collection('pendientes').onSnapshot(snap => {
+    state.pendientes = snap.docs.map(d => Object.assign({id:d.id}, d.data()));
+    renderAll();
+  }, err => { console.error('pendientes onSnapshot', err); });
 }
 
 /* ================= Derived data ================= */
@@ -1686,6 +1722,7 @@ function renderAll(){
   renderGastosFijosPendientes();
   renderProyectos();
   syncProyectoSelects();
+  renderPendientes();
 }
 
 /* Selector opcional de proyecto en Añadir/Editar movimiento -- se mantiene
@@ -3066,16 +3103,27 @@ $('#form-add').addEventListener('submit', async (e) => {
       });
       recurrenteId = rec.id;
     }
+    // Si este formulario se rellenó desde "Pagos detectados" (botón Revisar),
+    // al guardar se quita también de la bandeja de pendientes.
+    const revision = state.pendienteRevision;
     // proyectoId es opcional y no cambia en nada cómo se guarda ni cuenta este
     // movimiento en el resumen general -- solo hace que, además, aparezca
     // también en el seguimiento de ese proyecto (pestaña Proyectos).
-    await state.db.collection('movimientos').add({
+    await state.db.collection('movimientos').add(Object.assign({
       fecha, mes: mesOf(fecha), tipo, persona, categoria, concepto, compartido, importe: Math.round(importe*100)/100, obs,
       proyectoId,
       ticketData: ticketAdd ? ticketAdd.data : null, ticketNombre: ticketAdd ? ticketAdd.nombre : null,
       recurrenteId, creadoPor: state.user, creadoEn: new Date().toISOString()
-    });
-    showToast(repetir ? 'Guardado y marcado como recurrente ✓' : 'Movimiento guardado ✓');
+    }, revision ? { detectadoPor: revision.origen || 'movil' } : {}));
+    if(revision){
+      // Primero se limpia el estado y DESPUÉS se borra el pendiente: el borrado
+      // dispara el render en síncrono, y si la revisión siguiera activa se
+      // interpretaría como "lo ha gestionado el otro móvil".
+      cancelarRevisionPendiente(false);
+      try{ await state.db.doc('pendientes/'+revision.id).delete(); }
+      catch(err){ console.error('No se pudo quitar el pendiente', err); }
+    }
+    showToast(revision ? 'Pago detectado guardado ✓' : (repetir ? 'Guardado y marcado como recurrente ✓' : 'Movimiento guardado ✓'));
     $('#in-importe').value = ''; $('#in-concepto').value = ''; $('#in-obs').value = '';
     $('#in-compartido').checked = false;
     $('#in-recurrente').checked = false;
@@ -3268,6 +3316,357 @@ document.addEventListener('click', (e) => {
   tip.innerHTML = `<strong>${hit.getAttribute('data-label')}</strong><br>Ingresos: ${hit.getAttribute('data-ing')} · Gastos: ${hit.getAttribute('data-gas')}`;
   tip.classList.add('show');
 });
+
+/* ================= Pagos detectados (Apple Pay / Google Wallet) =================
+   El navegador no puede ver los pagos del móvil, así que son los propios móviles
+   quienes los envían: en el iPhone, una automatización de Atajos que salta al
+   pagar con Cartera (Apple Pay); en Android, una macro de MacroDroid que lee el
+   aviso de Google Wallet. Los dos escriben un documento en la colección
+   "pendientes" con la API REST de Firestore (paso a paso en
+   guia-pagos-automaticos.md). Aquí se interpretan (importe, comercio, fecha) y se
+   proponen como gasto con la categoría sugerida -- NADA cuenta en ningún
+   cálculo hasta que se guarda como movimiento. */
+
+const ORIGEN_PENDIENTE = { applepay: 'Apple Pay', googlewallet: 'Google Wallet' };
+
+/* "1.234,56" / "1,234.56" / "12,50" / "12.5" / "1 234,56" -> número (o null). */
+function normalizarNumero(bruto){
+  let t = String(bruto).replace(/\s/g, '');
+  const negativo = t.startsWith('-');
+  if(negativo) t = t.slice(1);
+  const ultComa = t.lastIndexOf(','), ultPunto = t.lastIndexOf('.');
+  let sepDecimal = null;
+  if(ultComa >= 0 && ultPunto >= 0) sepDecimal = ultComa > ultPunto ? ',' : '.';
+  else if(ultComa >= 0) sepDecimal = (t.length - ultComa - 1) <= 2 ? ',' : null; // "1,234" -> miles
+  else if(ultPunto >= 0) sepDecimal = (t.length - ultPunto - 1) <= 2 ? '.' : null; // "1.234" -> miles
+  let entero = t, decimales = '';
+  if(sepDecimal){ const i = t.lastIndexOf(sepDecimal); entero = t.slice(0, i); decimales = t.slice(i + 1); }
+  entero = entero.replace(/[.,]/g, '');
+  if(!/^\d+$/.test(entero) || (decimales && !/^\d+$/.test(decimales))) return null;
+  const v = parseFloat(entero + (decimales ? '.' + decimales : ''));
+  if(!isFinite(v)) return null;
+  return Math.round((negativo ? -v : v) * 100) / 100;
+}
+
+/* Importe a partir de textos como "12,50 €", "€12.50", "1.234,56 EUR" o
+   "Has pagado 8,45 € con Visa •••• 1234": prioriza el número pegado a €/EUR
+   para no confundirlo con los últimos dígitos de la tarjeta o la hora. */
+function parsearImporte(texto, exigirMoneda){
+  if(texto === null || texto === undefined) return null;
+  if(typeof texto === 'number') return isFinite(texto) ? Math.round(texto * 100) / 100 : null;
+  const s = String(texto).replace(/[\u00a0\u202f]/g, ' ').trim();
+  if(!s) return null;
+  const num = '(-?\\d{1,3}(?:[.,\\s]\\d{3})+(?:[.,]\\d{1,2})?|-?\\d+(?:[.,]\\d{1,2})?)';
+  // En los avisos del móvil (exigirMoneda) solo vale un número pegado a €/EUR:
+  // así un aviso sin importe ("Tarjeta •••• 1234 añadida") no se lee como 1.234 €.
+  const m = s.match(new RegExp(num + '\\s*(?:€|eur(?:os?)?\\b)', 'i'))
+         || s.match(new RegExp('(?:€|\\beur(?:os?)?)\\s*' + num, 'i'))
+         || (exigirMoneda ? null : s.match(new RegExp(num)));
+  return m ? normalizarNumero(m[1]) : null;
+}
+
+function tieneImporte(s){ return /\d\s*(?:€|eur\b)|(?:€|\beur)\s*\d/i.test(String(s || '')); }
+
+/* "MERCADONA ALICANTE 1234" -> "Mercadona Alicante 1234" (los TPV lo mandan todo en mayúsculas). */
+function bonitoComercio(s){
+  let t = String(s || '').replace(/\s+/g, ' ').trim().replace(/^[·•\-–—:,.\s]+|[·•\-–—:,.\s]+$/g, '');
+  if(!t) return '';
+  if(t === t.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(t)){
+    t = t.toLowerCase().replace(/(^|[\s\-\/(.&])([a-záéíóúñü])/g, (m, a, b) => a + b.toUpperCase());
+  }
+  return t.slice(0, 80);
+}
+
+const TITULOS_GENERICOS = /^(google\s*(wallet|pay|cartera)|wallet|cartera|pago|compra|pago realizado|pago con tarjeta|transacci[oó]n|nueva transacci[oó]n)$/i;
+
+/* iPhone manda el comercio tal cual; en Android sale del aviso de Google Wallet
+   (normalmente el título es el comercio y el texto "8,45 € con Visa ••1234"). */
+function extraerComercio(p){
+  if(p.comercio && String(p.comercio).trim()) return bonitoComercio(p.comercio);
+  const titulo = String(p.titulo || '').trim();
+  const texto = String(p.texto || '').trim();
+  if(titulo && !TITULOS_GENERICOS.test(titulo) && !tieneImporte(titulo)) return bonitoComercio(titulo);
+  const m = (texto + ' · ' + titulo).match(/\b(?:en|at)\s+([^·•\n]+?)(?:\s+(?:con|with|el|on)\b|[·•\n]|$)/i);
+  if(m && m[1] && !tieneImporte(m[1])) return bonitoComercio(m[1]);
+  return '';
+}
+
+const MESES_ABREV = { ene:1, jan:1, feb:2, mar:3, abr:4, apr:4, may:5, jun:6, jul:7, ago:8, aug:8, sep:9, oct:10, nov:11, dic:12, dec:12 };
+
+/* Fecha del pago: acepta ISO ("2026-10-20T10:15:00+02:00"), "20/10/2026",
+   "20 oct 2026" o una marca de tiempo. Si no se reconoce -> null. */
+function fechaDePendiente(p){
+  const f = String(p.fecha || '').trim();
+  if(!f) return null;
+  const valida = (y, mo, d) => {
+    if(!(y >= 2000 && y <= 2100 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31)) return null;
+    return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  };
+  let m = f.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return valida(+m[1], +m[2], +m[3]);
+  m = f.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);
+  if(m) return valida(m[3].length === 2 ? 2000 + (+m[3]) : +m[3], +m[2], +m[1]);
+  m = f.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/(\d{1,2})\s+(?:de\s+)?([a-z]{3})[a-z]*\.?,?\s+(?:de\s+)?(\d{4})/);
+  if(m && MESES_ABREV[m[2]]) return valida(+m[3], MESES_ABREV[m[2]], +m[1]);
+  if(/^\d{10,13}$/.test(f)){
+    const n = Number(f), d = new Date(f.length === 13 ? n : n * 1000);
+    if(!isNaN(d)) return valida(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  }
+  return null;
+}
+
+/* Todo lo que necesita la bandeja, interpretado y con valores por defecto seguros. */
+function datosPendiente(p){
+  let importe = null;
+  if(p.importeTexto !== undefined && p.importeTexto !== null && String(p.importeTexto).trim() !== '') importe = parsearImporte(p.importeTexto);
+  else if(p.importe !== undefined && p.importe !== null && String(p.importe).trim() !== '') importe = parsearImporte(p.importe);
+  if(importe === null) importe = parsearImporte(p.texto, true);
+  if(importe === null) importe = parsearImporte(p.titulo, true);
+  if(importe !== null) importe = Math.abs(importe);
+  if(importe === 0) importe = null; // a veces Apple manda 0 si no le llegó el importe
+  const fecha = fechaDePendiente(p);
+  const persona = (p.persona === 'Sergio' || p.persona === 'Carmen') ? p.persona : null;
+  const origen = String(p.origen || '').toLowerCase();
+  return {
+    id: p.id,
+    importe,
+    comercio: extraerComercio(p),
+    fecha: fecha || todayISO(),
+    fechaRecibida: !!fecha,
+    persona: persona || state.user,
+    origen: origen || 'movil',
+    origenLabel: ORIGEN_PENDIENTE[origen] || 'Pago con el móvil',
+  };
+}
+
+function normalizarTexto(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+const PALABRAS_VACIAS_COMERCIO = new Set(['sl','sa','slu','sau','scl','the','los','las','del','compra','pago','tpv','tarj','tarjeta','www','com','shop','store','tienda','bar','super']);
+function claveComercio(comercio){
+  const palabras = normalizarTexto(comercio).split(' ').filter(w => w.length >= 3 && !PALABRAS_VACIAS_COMERCIO.has(w) && !/^\d+$/.test(w));
+  return palabras[0] || null;
+}
+
+/* Comercios muy habituales -> categoría, SOLO para cuando todavía no hay
+   historial con ese comercio (en cuanto guardáis uno, manda vuestro historial). */
+const COMERCIOS_CONOCIDOS = [
+  [/\b(mercadona|carrefour|lidl|aldi|consum|alcampo|eroski|hipercor|supercor|ahorramas|masymas|caprabo|bonpreu|condis|gadis|froiz|spar|dia|coviran|primaprix|hiperber|el corte ingles supermercado)\b/, 'Alimentación'],
+  [/\b(repsol|cepsa|moeve|bp|galp|shell|ballenoil|plenoil|petroprix|petronor|campsa|avia|esclatoil|gasolinera|estacion de servicio|renfe|alsa|vectalia|metro|tram|emt|cabify|uber|bolt|parking|aparcamiento|peaje|autopista|itv)\b/, 'Transporte y carburantes'],
+  [/\b(netflix|spotify|hbo|disney|dazn|youtube|icloud|apple com|filmin|audible)\b/, 'Suscripciones'],
+  [/\b(decathlon|sprinter|gimnasio|gym|basic fit|altafit|vivagym|padel)\b/, 'Deportes'],
+  [/\b(tiendanimal|kiwoko|veterinari\w*|mascota\w*)\b/, 'Mascotas'],
+  [/\b(peluquer\w*|barber\w*)\b/, 'Peluquería'],
+  [/\b(cine|cinesa|yelmo|kinepolis|restaurante|cafeteria|cerveceria|burger|mcdonald\w*|telepizza|domino\w*|kfc|foster|montaditos|vips|starbucks|glovo|just eat)\b/, 'Ocio'],
+  [/\b(amazon|zara|primark|ikea|leroy merlin|mediamarkt|media markt|fnac|aliexpress|shein|action|pepco|mango|bershka|lefties|stradivarius|el corte ingles)\b/, 'Compras'],
+];
+
+/* Categoría (y si era compartido) sugeridos para un comercio: primero lo que
+   hicisteis vosotros con ese mismo comercio (la categoría más repetida en los 10
+   gastos más recientes que lo mencionan), luego la tabla de comercios
+   conocidos y, si no, "Otros". */
+function sugerirParaComercio(comercio){
+  const porDefecto = CATEGORIAS_GASTO.includes('Otros') ? 'Otros' : CATEGORIAS_GASTO[0];
+  const clave = claveComercio(comercio);
+  if(clave){
+    const recientes = state.movimientos
+      .filter(m => m.tipo === 'Gasto' && CATEGORIAS_GASTO.includes(m.categoria) && normalizarTexto(m.concepto).split(' ').includes(clave))
+      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.creadoEn || '').localeCompare(a.creadoEn || ''))
+      .slice(0, 10);
+    if(recientes.length){
+      const cuenta = {};
+      recientes.forEach(m => { cuenta[m.categoria] = (cuenta[m.categoria] || 0) + 1; });
+      const posicion = (cat) => recientes.findIndex(m => m.categoria === cat);
+      const categoria = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a] || posicion(a) - posicion(b))[0];
+      const ultimo = recientes.find(m => m.categoria === categoria);
+      return { categoria, compartido: !!ultimo.compartido, fuente: 'historial' };
+    }
+  }
+  const n = normalizarTexto(comercio);
+  for(const [re, cat] of COMERCIOS_CONOCIDOS){
+    if(re.test(n) && CATEGORIAS_GASTO.includes(cat)) return { categoria: cat, compartido: false, fuente: 'conocido' };
+  }
+  return { categoria: porDefecto, compartido: false, fuente: 'defecto' };
+}
+
+function diasEntre(a, b){ return Math.round((Date.parse(a + 'T00:00:00Z') - Date.parse(b + 'T00:00:00Z')) / 86400000); }
+
+/* ¿Hay ya un gasto con el mismo importe ese día (±1)? Solo es un aviso: puede
+   que lo apuntarais a mano antes de que llegara el pago detectado. */
+function posibleDuplicado(d){
+  if(d.importe === null) return null;
+  return state.movimientos.find(m => m.tipo === 'Gasto' && Math.abs((Number(m.importe) || 0) - d.importe) < 0.005
+    && m.fecha && Math.abs(diasEntre(m.fecha, d.fecha)) <= 1) || null;
+}
+
+function pendienteRowHTML(p){
+  const d = datosPendiente(p);
+  const sug = sugerirParaComercio(d.comercio);
+  const dup = posibleDuplicado(d);
+  const id = escapeHTML(p.id);
+  const meta = [escapeHTML(d.origenLabel), escapeHTML(d.persona), d.fechaRecibida ? fmtDate(d.fecha) : 'sin fecha (se usará la de hoy)'].join(' · ');
+  const lineaCategoria = d.importe !== null
+    ? `${catIcon(sug.categoria)} ${escapeHTML(sug.categoria)}${sug.compartido ? ' · <span class="badge compartido">Compartido</span>' : ''}`
+    : '<span class="pend-aviso">No se pudo leer el importe: pulsa Revisar para escribirlo</span>';
+  const aviso = dup
+    ? `<div class="rec-meta pend-aviso">⚠️ ¿Ya lo apuntaste? Hay un gasto de ${fmtEUR.format(dup.importe)} el ${fmtDate(dup.fecha)} (${escapeHTML(dup.concepto || dup.categoria)})</div>`
+    : '';
+  return `<div class="rec-row pend-row" data-pend-id="${id}">
+    <div class="rec-main">
+      <div class="rec-concepto">${escapeHTML(d.comercio || 'Comercio desconocido')}</div>
+      <div class="rec-meta">${meta}</div>
+      <div class="rec-meta">${lineaCategoria}</div>
+      ${aviso}
+      <div class="pend-actions">
+        ${d.importe !== null ? `<button type="button" class="btn btn-sm btn-primary" data-pend-guardar="${id}">✓ Guardar</button>` : ''}
+        <button type="button" class="btn btn-sm btn-ghost" data-pend-revisar="${id}">✎ Revisar</button>
+        <button type="button" class="pend-descartar" data-pend-descartar="${id}" title="Descartar">✕</button>
+      </div>
+    </div>
+    <div class="rec-amount">${d.importe !== null ? '-' + fmtEUR.format(d.importe) : '¿? €'}</div>
+  </div>`;
+}
+
+function renderPendientes(){
+  const card = $('#card-pendientes');
+  if(!card) return;
+  const lista = state.pendientes.slice().sort((a, b) =>
+    (fechaDePendiente(b) || '').localeCompare(fechaDePendiente(a) || '') || String(b.id).localeCompare(String(a.id)));
+  const badge = $('#nav-badge-pend');
+  badge.textContent = lista.length > 9 ? '9+' : String(lista.length);
+  badge.hidden = lista.length === 0;
+  // Se estaba completando uno en el formulario y ha desaparecido de la bandeja:
+  // lo ha guardado o descartado la otra persona desde su móvil. Se limpia el
+  // formulario para no duplicarlo sin querer.
+  if(state.pendienteRevision && !lista.some(p => p.id === state.pendienteRevision.id)){
+    cancelarRevisionPendiente(true);
+    showToast('Ese pago detectado ya se guardó o descartó desde el otro móvil.');
+  }
+  if(!lista.length){ card.style.display = 'none'; $('#pendientes-list').innerHTML = ''; return; }
+  card.style.display = 'block';
+  $('#pendientes-count').textContent = String(lista.length);
+  $('#pendientes-list').innerHTML = lista.map(pendienteRowHTML).join('');
+}
+
+/* #banner-pendiente es ESTÁTICO (no se recrea al renderizar): su estado se
+   limpia siempre aquí, a mano. */
+function cancelarRevisionPendiente(limpiarFormulario){
+  state.pendienteRevision = null;
+  $('#banner-pendiente').hidden = true;
+  $('#banner-pendiente-texto').textContent = '';
+  if(limpiarFormulario){
+    $('#in-importe').value = ''; $('#in-concepto').value = ''; $('#in-obs').value = '';
+    $('#in-compartido').checked = false;
+    $('#in-recurrente').checked = false;
+    if($('#in-proyecto')) $('#in-proyecto').value = '';
+    $('#in-fecha').value = todayISO();
+    ticketAdd = null; setTicketChip('add', null);
+    $all('#seg-persona button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === state.user));
+    updateCategoriaOptions();
+  }
+}
+
+/* "Revisar": rellena el formulario normal de Añadir con lo detectado, para
+   cambiar lo que haga falta (categoría, compartido, proyecto, ticket...). Al
+   guardar desde ahí, el pendiente se quita de la bandeja solo. */
+function revisarPendiente(id){
+  const p = state.pendientes.find(x => x.id === id);
+  if(!p) return;
+  const d = datosPendiente(p);
+  const sug = sugerirParaComercio(d.comercio);
+  $all('#seg-tipo button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === 'Gasto'));
+  $all('#seg-persona button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === d.persona));
+  updateCategoriaOptions();
+  $('#in-categoria').value = sug.categoria;
+  $('#in-importe').value = d.importe !== null ? String(d.importe) : '';
+  $('#in-fecha').value = d.fecha;
+  $('#in-concepto').value = d.comercio || '';
+  $('#in-compartido').checked = !!sug.compartido;
+  $('#in-recurrente').checked = false;
+  if($('#in-proyecto')) $('#in-proyecto').value = '';
+  $('#in-obs').value = '';
+  ticketAdd = null; setTicketChip('add', null);
+  state.pendienteRevision = { id: p.id, origen: d.origen };
+  $('#banner-pendiente-texto').textContent = `${d.comercio || 'Pago'} · ${d.importe !== null ? fmtEUR.format(d.importe) : 'importe por completar'}`;
+  $('#banner-pendiente').hidden = false;
+  goToView('add');
+  $('#card-form-add').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if(d.importe === null) $('#in-importe').focus();
+}
+
+/* "Guardar" en un toque: con la categoría y el "compartido" sugeridos. */
+async function guardarPendiente(id, btn){
+  const p = state.pendientes.find(x => x.id === id);
+  if(!p) return;
+  const d = datosPendiente(p);
+  if(d.importe === null){ revisarPendiente(id); return; }
+  const sug = sugerirParaComercio(d.comercio);
+  if(state.pendienteRevision && state.pendienteRevision.id === id) cancelarRevisionPendiente(true);
+  if(btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
+  const original = Object.assign({}, p);
+  delete original.id;
+  try{
+    const ref = await state.db.collection('movimientos').add({
+      fecha: d.fecha, mes: mesOf(d.fecha), tipo: 'Gasto', persona: d.persona, categoria: sug.categoria,
+      concepto: d.comercio || 'Pago con el móvil', compartido: !!sug.compartido, importe: d.importe, obs: '',
+      proyectoId: null, ticketData: null, ticketNombre: null, recurrenteId: null,
+      detectadoPor: d.origen, creadoPor: state.user, creadoEn: new Date().toISOString()
+    });
+    await state.db.doc('pendientes/' + id).delete();
+    showToast(`Guardado: ${d.comercio || 'pago'} · ${fmtEUR.format(d.importe)}`, {
+      actionLabel: 'Deshacer',
+      onAction: async () => {
+        try{
+          await state.db.doc('movimientos/' + ref.id).delete();
+          await state.db.collection('pendientes').add(original);
+          showToast('Deshecho: vuelve a estar en pagos detectados');
+        }catch(err){ console.error(err); showToast('No se pudo deshacer.'); }
+      }
+    });
+  }catch(err){
+    console.error(err);
+    showToast('No se pudo guardar. Inténtalo de nuevo.');
+    if(btn && btn.isConnected){ btn.disabled = false; btn.textContent = '✓ Guardar'; }
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const g = e.target.closest('[data-pend-guardar]');
+  if(g){ guardarPendiente(g.getAttribute('data-pend-guardar'), g); return; }
+  const r = e.target.closest('[data-pend-revisar]');
+  if(r) revisarPendiente(r.getAttribute('data-pend-revisar'));
+});
+
+/* Descartar (toca-para-confirmar, y con "Deshacer" por si acaso). */
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-pend-descartar]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-pend-descartar');
+  if(!btn.classList.contains('confirm')){
+    $all('.pend-descartar.confirm').forEach(x => { x.classList.remove('confirm'); x.textContent = '✕'; });
+    btn.classList.add('confirm'); btn.textContent = '¿Descartar?';
+    setTimeout(() => { if(btn.isConnected && btn.classList.contains('confirm')){ btn.classList.remove('confirm'); btn.textContent = '✕'; } }, 3000);
+    return;
+  }
+  const p = state.pendientes.find(x => x.id === id);
+  if(!p) return;
+  const original = Object.assign({}, p);
+  delete original.id;
+  if(state.pendienteRevision && state.pendienteRevision.id === id) cancelarRevisionPendiente(true);
+  btn.textContent = '…';
+  try{
+    await state.db.doc('pendientes/' + id).delete();
+    showToast('Pago descartado', {
+      actionLabel: 'Deshacer',
+      onAction: async () => {
+        try{ await state.db.collection('pendientes').add(original); showToast('Recuperado ✓'); }
+        catch(err){ console.error(err); showToast('No se pudo recuperar.'); }
+      }
+    });
+  }catch(err){ console.error(err); showToast('No se pudo descartar.'); }
+});
+
+$('#btn-cancelar-pendiente').addEventListener('click', () => cancelarRevisionPendiente(true));
 
 /* ================= Proyectos =================
    A propósito totalmente aislado de movimientos/liquidaciones: usa sus propias
@@ -3688,6 +4087,9 @@ $('#btn-backup').addEventListener('click', () => {
     deudas: state.deudas,
     proyectos: state.proyectos,
     proyectoMovs: state.proyectoMovs,
+    // "pendientes" (pagos detectados sin revisar) NO va en la copia a propósito:
+    // es una bandeja temporal, y restaurarla resucitaría pagos ya guardados o
+    // descartados (que acabarían duplicados).
   };
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], {type:'application/json;charset=utf-8;'});
