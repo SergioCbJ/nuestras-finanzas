@@ -3,7 +3,7 @@
    y funcione sin conexión. Los DATOS (Firestore) NUNCA pasan por esta caché: las
    peticiones a la base de datos van siempre a la red (Firestore ya guarda su
    propia copia en el móvil). */
-const CACHE_NAME = 'nuestras-finanzas-v3';
+const CACHE_NAME = 'nuestras-finanzas-v4';
 const SHELL_FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 // El SDK va con su versión en la URL: nunca cambia, así que se sirve de la caché.
 // Si algún día se cambia la versión en index.html, cambiarla también aquí.
@@ -13,9 +13,11 @@ const SDK_FILES = ['firebase-app.js', 'firebase-firestore.js', 'firebase-auth.js
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_FILES)
-        // Sin conexión al instalar, el SDK se guardará la próxima vez que se descargue.
-        .then(() => cache.addAll(SDK_FILES).catch(() => {})))
+      // La página es imprescindible (si falla, se queda el service worker anterior).
+      // El resto va archivo a archivo: si falta alguno en el servidor (p. ej. un
+      // icono sin subir), la instalación sigue adelante en vez de fallar entera.
+      .then((cache) => cache.addAll(['./', './index.html'])
+        .then(() => Promise.all(SHELL_FILES.slice(2).concat(SDK_FILES).map((f) => cache.add(f).catch(() => {})))))
       .then(() => self.skipWaiting())
   );
 });
