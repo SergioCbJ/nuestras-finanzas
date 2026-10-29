@@ -442,6 +442,12 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.7;cursor:pointer;}
 .hip-amort .meta-del{min-height:36px;background:none;border:1px solid var(--line-strong);border-radius:999px;padding:0 12px;font-size:.8125rem;color:var(--alerta);font-weight:650;}
 .hip-amort .meta-del.confirm{background:var(--alerta);border-color:transparent;color:var(--on-alerta);}
 .hip-form-sub{font-size:.9375rem;font-weight:650;color:var(--ink);margin-top:6px;}
+.hip-resumen-mes{font-size:.8125rem;color:var(--ink-3);margin:0 0 2px;}
+.hip-proximo{font-size:.8125rem;color:var(--ink-2);line-height:1.45;margin:6px 0 0;padding-top:10px;border-top:1px solid var(--line);}
+.hip-check{width:36px;height:36px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--panel);color:transparent;display:grid;place-items:center;flex:none;padding:0;}
+.hip-check .ic{width:18px;height:18px;}
+.hip-check.pend{color:var(--ink-2);}
+.hip-check.on{background:var(--ingreso-tint);border-color:transparent;color:var(--ingreso-ink);}
 
 /* ============ Saldo ============ */
 .saldo-hero{display:flex;flex-direction:column;gap:6px;padding:20px 18px 18px;}
@@ -1231,6 +1237,11 @@ dialog.modal-backdrop[open]::backdrop{animation:fadeIn .2s ease;}
           </div>
         </div>
         <p class="hint">La deducción se calcula sobre el capital que se paga en el año, cuotas y amortizaciones, sin contar los intereses.</p>
+        <div class="field">
+          <label for="hip-tareas">Otras tareas de cada mes (opcional)</label>
+          <textarea id="hip-tareas" rows="3" maxlength="600" placeholder="Una por línea, p. ej. Dejar 400 € de base en el BBVA"></textarea>
+        </div>
+        <p class="hint">Para que una tarea salga solo un mes, empieza la línea con el mes: «11/2026: Pasar 750 € a mano».</p>
         <button type="submit" class="btn btn-primary">Guardar</button>
       </form>
     </div>
@@ -5163,17 +5174,110 @@ function hipotecaResumen(docHip, hoy){
   };
 }
 
-function hipPasoHTML(ic, titulo, meta, importe){
-  return `<li class="hip-paso"><span class="cat-tile" aria-hidden="true">${icon(ic)}</span>
-    <span class="hip-paso-txt"><span class="hip-paso-t">${titulo}</span><span class="hip-paso-m">${meta}</span></span>
-    ${importe ? `<span class="hip-paso-imp">${importe}</span>` : ''}</li>`;
+/* Una línea de «Otras tareas»: «11/2026: texto» sale solo ese mes; sin mes, todos. */
+function hipTareaLibre(linea){
+  const m = /^(\d{1,2})\/(\d{4})\s*:\s*(.+)$/.exec(linea);
+  return m && Number(m[1]) >= 1 && Number(m[1]) <= 12
+    ? { mes: m[2] + '-' + String(Number(m[1])).padStart(2, '0'), texto: m[3].trim() }
+    : { mes: null, texto: linea };
+}
+
+/* Lo que el plan pide hacer en el mes actual, siempre en el mismo orden: solo salen
+   las tareas que tocan ese mes. Lo de la hipoteca se marca solo al apuntar la
+   amortización, y lo compartido al registrar una liquidación; el resto se marca a
+   mano (meta/hipoteca.hechos). */
+function hipTareasMes(res){
+  const { cfg, mesActual } = res;
+  const hechos = new Set(((state.hipoteca && state.hipoteca.hechos) || {})[mesActual] || []);
+  const mesTxt = (mes) => { const s = mesCorto(mes); return s.charAt(0).toLowerCase() + s.slice(1); };
+  const destino = cfg.transferenciaA ? escapeHTML(cfg.transferenciaA) : 'la otra cuenta';
+  const tareas = [];
+
+  if(res.transferencia){
+    const t = res.transferencia;
+    tareas.push({ clave: 'transferencia', titulo: 'Pasar a ' + destino,
+      meta: 'Día 1, orden periódica' + (t.cambio ? ` · ${fmtEURJusto(t.cambio.importe)} desde ${escapeHTML(mesTxt(t.cambio.desde))}` : ''),
+      importe: fmtEURJusto(t.importe), hecha: hechos.has('transferencia'), accion: 'marcar' });
+  }
+
+  // Lo compartido se devuelve por Bizum y se registra como liquidación en Saldo.
+  const saldo = saldoActual();
+  const enPaz = Math.abs(saldo) < 0.005;
+  const liquidado = state.liquidaciones.some(l => l.mes === mesActual);
+  tareas.push({ clave: 'compartido', titulo: 'Bizum de lo compartido',
+    meta: 'Primeros de mes · ' + (liquidado ? 'liquidado este mes' : enPaz ? 'estáis en paz' : escapeHTML(fraseSaldo(saldo))),
+    importe: enPaz || liquidado ? '' : fmtEUR.format(Math.abs(saldo)), hecha: liquidado || enPaz, accion: 'saldo' });
+
+  // Las amortizaciones apuntadas en el mes cubren primero la de la paga y luego la mensual.
+  let apuntado = res.apuntadoMes;
+  const pagaMes = cfg.porPaga > 0 && HIP_MESES_PAGA.includes(Number(mesActual.slice(5,7))) ? cfg.porPaga : 0;
+  if(pagaMes > 0){
+    tareas.push({ clave: 'paga', titulo: 'Amortizar de la paga', meta: 'Paga extra · reduciendo plazo',
+      importe: fmtEURJusto(pagaMes), hecha: apuntado >= pagaMes - 0.005, accion: 'apuntar' });
+    apuntado = Math.max(0, apuntado - pagaMes);
+    if(cfg.transferenciaA){
+      tareas.push({ clave: 'restoPaga', titulo: 'Pasar el resto de la paga', meta: `Paga extra · a ${destino}`,
+        importe: '', hecha: hechos.has('restoPaga'), accion: 'marcar' });
+    }
+  }
+  const mensualMes = Math.max(0, res.planMes - pagaMes);
+  if(cfg.mensual > 0 && cfg.mensualDesde && mesActual >= cfg.mensualDesde && mensualMes > 0){
+    const revision = cfg.tipoHasta ? mesShift(mesOf(cfg.tipoHasta), 1) : null;
+    const trasRevision = cfg.totalTrasRevision > 0 && revision;
+    const meta = trasRevision && mesActual >= revision ? `Cada mes · lo que falta hasta ${fmtEURJusto(cfg.totalTrasRevision)} con la cuota`
+      : 'Cada mes · reduciendo plazo' + (trasRevision ? `; desde ${escapeHTML(mesTxt(revision))}, hasta ${fmtEURJusto(cfg.totalTrasRevision)} con la cuota` : '');
+    tareas.push({ clave: 'mensual', titulo: 'Amortizar del mes', meta,
+      importe: fmtEURJusto(mensualMes), hecha: apuntado >= mensualMes - 0.005, accion: 'apuntar' });
+  }
+
+  (cfg.tareas || []).map(hipTareaLibre).filter(t => !t.mes || t.mes === mesActual).forEach(t => {
+    tareas.push({ clave: 'o:' + t.texto, titulo: escapeHTML(t.texto), meta: t.mes ? 'Solo este mes' : 'Cada mes',
+      importe: '', hecha: hechos.has('o:' + t.texto), accion: 'marcar' });
+  });
+  return tareas;
+}
+
+/* Lo próximo que aparecerá en la lista, para que no pille por sorpresa. */
+function hipProximo(res){
+  const { cfg, mesActual } = res;
+  const revision = cfg.tipoHasta ? mesShift(mesOf(cfg.tipoHasta), 1) : null;
+  const libres = (cfg.tareas || []).map(hipTareaLibre).filter(t => t.mes);
+  for(let i = 1; i <= 36; i++){
+    const mes = mesShift(mesActual, i);
+    const cosas = [];
+    if(cfg.porPaga > 0 && HIP_MESES_PAGA.includes(Number(mes.slice(5,7)))){
+      cosas.push(`amortizar ${fmtEURJusto(cfg.porPaga)} de la paga`);
+      if(cfg.transferenciaA) cosas.push('pasar el resto');
+    }
+    if(cfg.mensual > 0 && cfg.mensualDesde === mes) cosas.push(`empezar a amortizar ${fmtEURJusto(cfg.mensual)} cada mes`);
+    if(cfg.mensual > 0 && cfg.mensualDesde && cfg.totalTrasRevision > 0 && revision === mes && mes > cfg.mensualDesde)
+      cosas.push(`cambia la cuota y lo de cada mes pasa a completar ${fmtEURJusto(cfg.totalTrasRevision)}`);
+    if(cfg.transferencia > 0 && cfg.transferencia2 > 0 && cfg.transferencia2Desde === mes) cosas.push(`la transferencia pasa a ${fmtEURJusto(cfg.transferencia2)}`);
+    libres.filter(t => t.mes === mes).forEach(t => cosas.push(escapeHTML(t.texto)));
+    if(cosas.length){
+      const cuando = mes.slice(0,4) === mesActual.slice(0,4) ? mesNombre(mes) : mesLabel(mes).toLowerCase();
+      const lista = cosas.length === 1 ? cosas[0] : cosas.slice(0, -1).join(', ') + ' y ' + cosas.at(-1);
+      return `Lo próximo, en ${escapeHTML(cuando)}: ${lista}.`;
+    }
+  }
+  return '';
+}
+
+function hipTareaHTML(t){
+  let marca;
+  if(t.accion === 'marcar') marca = `<button type="button" class="hip-check${t.hecha ? ' on' : ''}" data-hip-hecho="${escapeHTML(t.clave)}" aria-pressed="${t.hecha}" aria-label="${t.hecha ? 'Hecha' : 'Marcar como hecha'}: ${t.titulo}">${icon('check')}</button>`;
+  else if(t.hecha) marca = `<span class="hip-check on" role="img" aria-label="Hecha">${icon('check')}</span>`;
+  else if(t.accion === 'apuntar') marca = `<button type="button" class="hip-check pend" data-hip-apuntar aria-label="Apuntar la amortización">${icon('plus')}</button>`;
+  else marca = `<button type="button" class="hip-check pend" data-hip-saldo aria-label="Ir a Saldo para liquidar">${icon('arrow-right')}</button>`;
+  return `<li class="hip-paso">
+    <span class="hip-paso-txt"><span class="hip-paso-t">${t.titulo}</span><span class="hip-paso-m">${t.meta}</span></span>
+    ${t.importe ? `<span class="hip-paso-imp">${t.importe}</span>` : ''}${marca}</li>`;
 }
 
 function hipotecaHTML(){
   const res = memo('hipoteca', () => hipotecaResumen(state.hipoteca));
   if(!res) return `<div class="empty-hint">${icon('house')}Aún no hay datos de la hipoteca. Pulsa «Datos» para añadirlos y seguir aquí el plan de amortización.</div>`;
   const { cfg } = res;
-  const mesTxt = (mes) => mesLabel(mes).toLowerCase();
 
   const stats = [
     ['Pendiente', fmtEUR0.format(res.pendiente), res.pagadoPct != null ? `${fmtPct.format(res.pagadoPct)} pagado de ${fmtEUR0.format(cfg.prestamoInicial)}` : 'Según el banco y las cuotas cargadas'],
@@ -5184,35 +5288,19 @@ function hipotecaHTML(){
     `${fmtPct.format(res.deduccion.pct / 100)} de ${fmtEUR0.format(res.deduccion.base)} de capital`]);
   const statsHTML = `<div class="stat-grid">${stats.map(([l, v, s]) =>
     `<div class="stat"><span class="stat-label">${l}</span><span class="stat-value">${v}</span><span class="stat-sub">${s}</span></div>`).join('')}</div>`;
-  const pasos = [];
-  if(res.transferencia){
-    const t = res.transferencia;
-    const desde = t.cambio ? mesCorto(t.cambio.desde) : '';
-    const meta = t.cambio ? `Orden periódica · ${fmtEURJusto(t.cambio.importe)} desde ${escapeHTML(desde.charAt(0).toLowerCase() + desde.slice(1))}` : 'Orden periódica de cada mes';
-    pasos.push(hipPasoHTML('arrow-left-right', 'Transferencia a ' + (t.a ? escapeHTML(t.a) : 'la otra cuenta'), meta, fmtEURJusto(t.importe)));
-  }
-  if(res.planMes > 0 || res.apuntadoMes > 0){
-    const hecha = res.apuntadoMes > 0 && res.apuntadoMes >= res.planMes - 0.005;
-    const m = Number(res.mesActual.slice(5,7));
-    const partes = [];
-    if(cfg.porPaga > 0 && HIP_MESES_PAGA.includes(m)) partes.push('de la paga extra');
-    if(cfg.mensual > 0 && cfg.mensualDesde && res.mesActual >= cfg.mensualDesde) partes.push(partes.length ? 'del mes' : 'de este mes');
-    const meta = hecha ? `<span class="meta-stamp">Hecha</span>Apuntada, reduciendo plazo`
-      : res.apuntadoMes > 0 ? `Apuntados ${fmtEURJusto(res.apuntadoMes)} · faltan ${fmtEURJusto(res.planMes - res.apuntadoMes)}`
-      : `Pendiente · reduciendo plazo`;
-    pasos.push(hipPasoHTML('piggy-bank', 'Amortizar' + (partes.length ? ' ' + partes.join(' y ') : ''), meta, fmtEURJusto(hecha ? res.apuntadoMes : res.planMes)));
-  } else {
-    pasos.push(hipPasoHTML('calendar', 'Este mes no toca amortizar',
-      res.proxima ? `Próxima: ${fmtEURJusto(res.proxima.previsto)} en ${escapeHTML(mesTxt(res.proxima.mes))}` : 'El plan no tiene más amortizaciones', ''));
-  }
+  const tareas = hipTareasMes(res);
+  const hechas = tareas.filter(t => t.hecha).length;
+  const proximo = hipProximo(res);
 
   const lista = res.amorts.slice().sort((a,b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.creadoEn || '').localeCompare(a.creadoEn || ''));
   const amortsHTML = lista.length ? `<h3 class="hip-sub">Amortizaciones apuntadas · ${fmtEUR0.format(lista.reduce((s, a) => s + a.importe, 0))}</h3>
     <div>${lista.map(a => `<div class="hip-amort"><span class="hip-amort-fecha">${escapeHTML(fmtDate(a.fecha))}</span><span class="hip-amort-imp">${fmtEUR.format(a.importe)}</span><button type="button" class="meta-del" data-hip-del="${escapeHTML(a.id)}">Eliminar</button></div>`).join('')}</div>` : '';
 
   return `${statsHTML}
-    <h3 class="hip-sub">${escapeHTML(mesLabel(res.mesActual))}</h3>
-    <ul class="hip-pasos">${pasos.join('')}</ul>
+    <h3 class="hip-sub">Cada mes, según el plan</h3>
+    <p class="hip-resumen-mes">${escapeHTML(mesLabel(res.mesActual))}: ${hechas} de ${tareas.length} ${tareas.length === 1 ? 'hecha' : 'hechas'}</p>
+    <ul class="hip-pasos">${tareas.map(hipTareaHTML).join('')}</ul>
+    ${proximo ? `<p class="hip-proximo">${proximo}</p>` : ''}
     <div class="meta-actions"><button type="button" data-hip-apuntar>Apuntar amortización</button></div>
     ${amortsHTML}`;
 }
@@ -5234,6 +5322,7 @@ async function guardarHipoteca(datos){
 $('#btn-hip-datos').addEventListener('click', () => {
   const cfg = (state.hipoteca && state.hipoteca.config) || {};
   HIP_CAMPOS.forEach(([sel, campo]) => { $(sel).value = cfg[campo] == null ? '' : cfg[campo]; });
+  $('#hip-tareas').value = (cfg.tareas || []).join('\n');
   abrirModal('modal-hip-datos');
 });
 $('#close-modal-hip-datos').addEventListener('click', () => cerrarModal('modal-hip-datos'));
@@ -5251,6 +5340,7 @@ $('#form-hip-datos').addEventListener('submit', async (e) => {
     transferencia: hipRedondea(hipNum('#hip-transf')), transferenciaA: $('#hip-transf-a').value.trim() || null,
     transferencia2: hipRedondea(hipNum('#hip-transf2')), transferencia2Desde: $('#hip-transf2-desde').value || null,
     deduccionPct: hipNum('#hip-ded-pct'), deduccionHasta: hipNum('#hip-ded-hasta'),
+    tareas: Array.from(new Set($('#hip-tareas').value.split('\n').map(s => s.trim()).filter(Boolean))).slice(0, 8),
   };
   if(!(cfg.capital > 0) || !cfg.fechaCapital || !(cfg.cuota > 0) || !(cfg.cuotasRestantes >= 1) || !(cfg.tipo >= 0) || !cfg.tipoHasta){
     showToast('Revisa el capital, la fecha, la cuota, las cuotas pendientes y el interés.'); return;
@@ -5265,7 +5355,8 @@ $('#form-hip-datos').addEventListener('submit', async (e) => {
   const btn = e.target.querySelector('button[type=submit]');
   btn.disabled = true;
   try{
-    await guardarHipoteca({ config: cfg, amortizaciones: (state.hipoteca && state.hipoteca.amortizaciones) || [] });
+    // Se conserva el resto del documento (amortizaciones y tareas marcadas como hechas).
+    await guardarHipoteca(Object.assign({}, state.hipoteca || {}, { config: cfg, amortizaciones: (state.hipoteca && state.hipoteca.amortizaciones) || [] }));
     cerrarModal('modal-hip-datos');
     showToast('Datos de la hipoteca guardados');
   }catch(err){
@@ -5287,6 +5378,25 @@ document.addEventListener('click', (e) => {
   abrirModal('modal-hip-amort');
 });
 $('#close-modal-hip-amort').addEventListener('click', () => cerrarModal('modal-hip-amort'));
+
+/* Marcar a mano una tarea del mes. Se guardan los meses de los dos últimos años. */
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-hip-hecho]');
+  if(!b || !state.hipoteca) return;
+  const clave = b.getAttribute('data-hip-hecho');
+  const mes = todayISO().slice(0,7);
+  const desde = mesShift(mes, -24);
+  const hechos = {};
+  Object.entries(state.hipoteca.hechos || {}).forEach(([m, lista]) => { if(m >= desde) hechos[m] = lista; });
+  const delMes = new Set(hechos[mes] || []);
+  if(delMes.has(clave)) delMes.delete(clave); else delMes.add(clave);
+  hechos[mes] = Array.from(delMes);
+  try{ await guardarHipoteca(Object.assign({}, state.hipoteca, { hechos })); }
+  catch(err){ console.error(err); showToast('No se ha podido guardar.'); }
+});
+document.addEventListener('click', (e) => {
+  if(e.target.closest('[data-hip-saldo]')) goToView('saldo');
+});
 
 $('#form-hip-amort').addEventListener('submit', async (e) => {
   e.preventDefault();
